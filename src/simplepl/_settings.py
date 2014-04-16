@@ -39,8 +39,8 @@ def getWavelengthMax():
     if _settings.contains('wavelength/max'):
         return float(_settings.value('wavelength/max'))
     else:
-        _settings.setValue('wavelength/max', 5500.)
-        return 5500.
+        _settings.setValue('wavelength/max', 5000.)
+        return 5000.
 
 def getWavelengthPrecision():
     if _settings.contains('wavelength/precision'):

@@ -43,8 +43,12 @@ class FW102C(object):
                                    timeout=timeout)
         while self.__read(): # clear the filter's output buffer
             pass
-        id = self.get_id()
+        while True:
+            id = self.get_id()
+            if id != "Command error":
+                break
         assert id == "THORLABS FW102C/FW212C Filter Wheel version 1.01"
+            
 
     def __read(self):
         r = self._inst.readline()
