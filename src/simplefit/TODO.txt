@@ -1,0 +1,8 @@
+-SpectrumControlWidget
+--get rid of the edits, put in buttons for reset min/max, set min, set max?
+--add checkboxes for autofit lock
+
+-give the spectrum different color pens
+-save parameters to a file
+-load parameters from a file
+-open next spectrum without clearing the parameters

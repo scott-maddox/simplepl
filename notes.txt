@@ -1,0 +1,23 @@
+TODO:
+-fix the filterWheel driver. It's timing out instead of reading a line.
+-wait an extra delay when grating or filter changed
+--probably need to combine spectrometer and lockin classes into one
+---that should simplify a lot of things
+-fix error when starting scan immediately upon startup, before the wavelength
+can be read
+-show status, like what instrument is being waited on
+
+-allow settings & display of these:
+--lockin
+---time constant
+---reserve
+---line filter
+---2x line filter
+--spectrometer
+---entrance mirror
+---exit mirror
+
+-color the plots & add raw and phase curves
+--phase requires another y-axis on the right
+-add photon energy scale at the top?
+-add closeAction (Ctrl+W)
