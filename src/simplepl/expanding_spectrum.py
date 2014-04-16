@@ -22,6 +22,8 @@
 # std lib imports
 
 # third party imports
+import logging
+log = logging.getLogger(__name__)
 from PySide import QtCore
 import numpy as np
 
@@ -41,10 +43,11 @@ class ExpandingSpectrum(MeasuredSpectrum):
     
     def append(self, wavelength, raw, phase):
         if self.sysresParser is None:
+            log.warning("No sysrem response provided. Using raw value.")
             sysresrem = raw
         else:
-            i = np.searchsorted(self.sysresParser.wavelength, wavelength)
-            sysresrem = raw / self.sysresParser.raw[i]
+            sysres = self.sysresParser.get_sysres(wavelength)
+            sysresrem = raw / sysres
         self._wavelength.append(wavelength)
         self._energy.append(1239.842/wavelength)
         self._raw.append(raw)

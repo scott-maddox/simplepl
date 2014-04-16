@@ -283,7 +283,7 @@ class MainWindow(QtGui.QMainWindow):
         #TODO: keep the last spectrum for comparison?
         if self.spectrum:
             self.plot.removeSpectrum(self.spectrum)
-        self.spectrum = ExpandingSpectrum()
+        self.spectrum = ExpandingSpectrum(self._sysresParser)
         self.plot.addSpectrum(self.spectrum)
         self.spectrometer.sigWavelength.connect(
                                             self._scanPart1)
