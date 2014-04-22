@@ -1,5 +1,7 @@
 TODO:
--fix the filterWheel driver. It's timing out instead of reading a line.
+-remember the last save and open directories and start there
+
+
 -wait an extra delay when grating or filter changed
 --probably need to combine spectrometer and lockin classes into one
 ---that should simplify a lot of things

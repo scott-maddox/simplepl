@@ -74,12 +74,12 @@ class MainWindow(QtGui.QMainWindow):
     
     @QtCore.Slot()
     def changingGrating(self):
-        self.updateGrating(None)
-        self.updateWavelength(None)
+        self.gratingLabel.setText('Grating=?')
+        self.wavelengthLabel.setText('Wavelength=?')
     
     @QtCore.Slot()
     def changingFilter(self):
-        self.updateFilter(None)
+        self.filterLabel.setText('Filter=?')
     
     @QtCore.Slot(float)
     def updateGrating(self, grating):
@@ -228,7 +228,7 @@ class MainWindow(QtGui.QMainWindow):
         if not accepted:
             return
         self._wavelengthTarget = target
-        self.updateWavelength(None)
+        self.wavelengthLabel.setText('Wavelength=?')
         self.spectrometer.setWavelength(self._wavelengthTarget)
     
     def enableActions(self):
@@ -269,7 +269,7 @@ class MainWindow(QtGui.QMainWindow):
             return
         else:
             # If it isn't, go to the next wavelength
-            self.updateWavelength(None)
+            self.wavelengthLabel.setText('Wavelength=?')
             self.spectrometer.setWavelength(self._wavelengthTarget)
     
     def startScan(self):
