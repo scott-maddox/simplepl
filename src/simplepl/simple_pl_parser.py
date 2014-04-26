@@ -53,6 +53,8 @@ class SimplePLParser(object):
             first_line = f.readline()
             if first_line.startswith('**\tSample ID:'):
                 self._parseLabVIEW(first_line, f)
+            elif first_line.startswith('Wavelength\tRaw_Signal'):
+                self._parseRaw(first_line, f)
             elif first_line.startswith('Wavelength\tRaw_Signal\tPhase'):
                 self._parseSimple(first_line, f)
             elif first_line.startswith('Wavelength\tSysResRem'):
@@ -86,6 +88,22 @@ class SimplePLParser(object):
             self.wavelength.append(float(values[0]))
             self.raw.append(float(values[1]))
             self.sysresrem.append(float(values[2]))
+            
+    def _parseRaw(self, first_line, f):
+        # first_line is the column headers
+        while True:
+            line = f.readline()
+            if not line:
+                break # end of file
+            values = line.split()
+            wavelength = float(values[0])
+            raw = float(values[1])
+            self.wavelength.append(wavelength)
+            self.raw.append(raw)
+            if self.sysresFilepath is not None:
+                sysres = self.get_sysres(wavelength)
+                sysresrem = raw / sysres
+                self.sysresrem.append(sysresrem)
             
     def _parseSimple(self, first_line, f):
         # first_line is the column headers
@@ -121,7 +139,7 @@ class SimplePLParser(object):
             
     def _parseWavelengthSignalRawSignalPhase(self, first_line, f):
         if self.sysresFilepath is not None:
-            print "WARNING: Ignoring the provided system response file"
+            print "WARNING: Ignoring the system response removed column"
         # first_line is the column headers
         while True:
             line = f.readline()
@@ -129,10 +147,16 @@ class SimplePLParser(object):
                 break # end of file
             values = line.split()
             wavelength = float(values[0])
-            sysresrem = float(values[1])
+            raw = float(values[2])
             self.wavelength.append(wavelength)
-            self.sysresrem.append(sysresrem)
             #TODO: update MeasuredSpectrum to have optional raw and phase
+            if self.sysresFilepath is not None:
+                sysres = self.get_sysres(wavelength)
+                sysresrem = raw / sysres
+                self.sysresrem.append(sysresrem)
+            else:
+                self.sysresrem.append(float(values[1]))
+                
 
 if __name__ == '__main__':
     # Calculate sysresrem, and output it

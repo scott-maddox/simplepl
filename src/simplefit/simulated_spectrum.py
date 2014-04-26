@@ -167,6 +167,8 @@ class AsymmetricGaussianSpectrum(AbstractSimulatedSpectrum):
         '''
         Assumes energy is a numpy array.
         '''
+        # I want exp( - x**2 ) as x --> 0
+        # and exp( - x ) as x --> -oo, oo
         def f(energy):
             if energy < c:
                 return ( a * np.exp( -(energy - c)**2. / ( 2.* (2* w1 / 2.35482)**2. ) ) )
