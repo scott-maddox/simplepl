@@ -197,11 +197,11 @@ class Spectrometer(QtCore.QThread):
         if wavelength < 800.:
             raise ValueError('wavelengths below 800 nm are not supported')
         elif wavelength <= 1511.:
-            return 2
-        elif wavelength <= 2391.:
-            return 3
+            return 2 # 1.2 um blaze
+        elif wavelength <= 2360.:
+            return 3 # 2 um blaze
         elif wavelength <= 5500.:
-            return 1
+            return 1 # 4 um blaze
         raise ValueError('wavelengths above 5500 nm are not supported')
     
     def _getTargetFilter(self, wavelength):
@@ -209,11 +209,11 @@ class Spectrometer(QtCore.QThread):
         if wavelength < 800.:
             raise ValueError('wavelengths below 800 nm are not supported')
         elif wavelength <= 1511.:
-            return 1
+            return 1 # 800-1500
         elif wavelength <= 2616.:
-            return 2
+            return 2 # 1500-3000
         elif wavelength <= 5500.:
-            return 3
+            return 3 # 2500-700
         raise ValueError('wavelengths above 5500 nm are not supported')
     
     @QtCore.Slot(float)
