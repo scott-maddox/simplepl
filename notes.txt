@@ -1,4 +1,5 @@
 TODO:
+-allow changing the spectrometer diverters
 -remember the last save and open directories and start there
 
 

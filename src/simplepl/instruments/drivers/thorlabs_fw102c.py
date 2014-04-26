@@ -47,7 +47,10 @@ class FW102C(object):
             id = self.get_id()
             if id != "Command error":
                 break
-        assert id == "THORLABS FW102C/FW212C Filter Wheel version 1.01"
+            while self.__read(): # clear the filter's output buffer
+                pass
+        if id != "THORLABS FW102C/FW212C Filter Wheel version 1.01":
+            raise RuntimeError('Wrong instrument id: %s'%id)
             
 
     def __read(self):
