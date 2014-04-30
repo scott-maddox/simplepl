@@ -59,7 +59,7 @@ class MainWindow(QtGui.QMainWindow):
         
         # Initialize the current instrument values
         self._isScanning = False
-        self._sysresParser = SimplePLParser(None, '2014-04-09-sysres-for-new-software.txt')
+        self._sysresParser = SimplePLParser(None, '2014-04-28 sysres - InSb detector - 2.5 mm slits - N2.txt')
         self._grating = None
         self._filter = None
         self._wavelength = None
