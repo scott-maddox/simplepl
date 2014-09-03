@@ -24,20 +24,40 @@ vertical_spacing = 1./2
 import os.path
 
 # third party imports
+from PySide import QtCore, QtGui
 
 # local imports
 from simplepl.simple_pl_parser import SimplePLParser
-from simplepl.utils import open_dialog, open_multiple_dialog, save_dialog
-print 'Select the PL files to import...'
-pl_filepaths = open_multiple_dialog('*.*')
+
+
+app = QtGui.QApplication([])
+app.setOrganizationName("Scott J Maddox")
+app.setApplicationName("SimplePL")
+settings = QtCore.QSettings()
+dir = settings.value('last_directory', '')
+caption = 'Select the PL files to import...'
+pl_filepaths, _filter = QtGui.QFileDialog.getOpenFileNames(parent=None,
+                                                           caption=caption,
+                                                           dir=dir,
+                                                           filter='',
+                                                           selectedFilter='',
+                                                           options=0)
 if not pl_filepaths:
     raise ValueError('no PL files selected')
+dir, _filename = os.path.split(pl_filepaths[0])
+settings.setValue('last_directory', dir)
 print pl_filepaths
-print 'Select the system response file to use (if any)...'
-sysres_filepath = open_dialog('*.*')
-print sysres_filepath
-print 'Select where to save the vsz file...'
-save_filepath = save_dialog('*.*')
+# print 'Select the system response file to use (if any)...'
+# sysres_filepath = open_dialog('*.*')
+# print sysres_filepath
+sysres_filepath = None
+caption = 'Select where to save the vsz file...'
+save_filepath, _filter = QtGui.QFileDialog.getSaveFileName(parent=None,
+                                                           caption=caption,
+                                                           dir=dir,
+                                                           filter='*.vsz',
+                                                           selectedFilter='',
+                                                           options=0)
 if not save_filepath:
     raise ValueError('no save path selected')
 if not save_filepath.endswith('.vsz'):
