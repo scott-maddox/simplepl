@@ -71,6 +71,7 @@ from spectra_control_widget import SpectraControlWidget
 # The left panel should be dockable.
 # Even better would be to have icons instead of the A, C, and W labels
 
+
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -100,13 +101,13 @@ class MainWindow(QtGui.QMainWindow):
         autoFitAction.setToolTip('Autofit the spectrum')
         autoFitAction.setShortcut('Ctrl+F')
         autoFitAction.triggered.connect(self.autoFit)
-        
+
         copyNumericIntegralAction = QtGui.QAction('Copy &numeric integral', self)
         copyNumericIntegralAction.setStatusTip('Integrate numerically and copy the result')
         copyNumericIntegralAction.setToolTip('Integrate numerically and copy the result')
         copyNumericIntegralAction.setShortcut('Ctrl+N')
         copyNumericIntegralAction.triggered.connect(self.copyNumericIntegral)
-        
+
         copyPeakIntegralAction = QtGui.QAction('Copy fit &integral', self)
         copyPeakIntegralAction.setStatusTip('Integrate the fit peaks and copy the result')
         copyPeakIntegralAction.setToolTip('Integrate the fit peaks and copy the result')

@@ -34,18 +34,18 @@ app = QtGui.QApplication([])
 app.setOrganizationName("Scott J Maddox")
 app.setApplicationName("SimplePL")
 settings = QtCore.QSettings()
-dir = settings.value('last_directory', '')
+dirpath = settings.value('last_directory', '')
 caption = 'Select the PL files to import...'
 pl_filepaths, _filter = QtGui.QFileDialog.getOpenFileNames(parent=None,
                                                            caption=caption,
-                                                           dir=dir,
+                                                           dir=dirpath,
                                                            filter='',
                                                            selectedFilter='',
                                                            options=0)
 if not pl_filepaths:
     raise ValueError('no PL files selected')
-dir, _filename = os.path.split(pl_filepaths[0])
-settings.setValue('last_directory', dir)
+dirpath, _filename = os.path.split(pl_filepaths[0])
+settings.setValue('last_directory', dirpath)
 print pl_filepaths
 # print 'Select the system response file to use (if any)...'
 # sysres_filepath = open_dialog('*.*')
@@ -54,7 +54,7 @@ sysres_filepath = None
 caption = 'Select where to save the vsz file...'
 save_filepath, _filter = QtGui.QFileDialog.getSaveFileName(parent=None,
                                                            caption=caption,
-                                                           dir=dir,
+                                                           dir=dirpath,
                                                            filter='*.vsz',
                                                            selectedFilter='',
                                                            options=0)
@@ -71,6 +71,7 @@ for pl_filepath in pl_filepaths:
     root, ext = os.path.splitext(filename)
     l_tokens.append(root.split())
 
+
 # figure out what the difference between filename tokens is
 def get_token_diff_index(l_tokens):
     '''
@@ -85,7 +86,7 @@ def get_token_diff_index(l_tokens):
                 return j
         else:
             raise Exception("Couldn't find the difference between filename tokens")
-                
+
 token_diff_index = get_token_diff_index(l_tokens)
 # extract the actual differences
 token_diffs = [tokens[token_diff_index] for tokens in l_tokens]
@@ -95,32 +96,32 @@ with open(save_filepath, 'w') as f:
     for pl_filepath, token_diff in zip(pl_filepaths, token_diffs):
         parser = SimplePLParser(pl_filepath, sysres_filepath)
         parser.parse()
-        
+
         # Output the wavelength array
         f.write("ImportString(u'`%s Wavelength`(numeric)','''\n"%token_diff)
         for w in parser.wavelength:
             f.write("%.1f\n"%w)
         f.write("''')\n")
-        
+
         # Output the energy array
         f.write("ImportString(u'`%s Energy`(numeric)','''\n"%token_diff)
         for w in parser.energy:
             f.write("%E\n"%w)
         f.write("''')\n")
-        
+
         # Output the system response removed array
         f.write("ImportString(u'`%s SysResRem`(numeric)','''\n"%token_diff)
         for w in parser.sysresrem:
             f.write("%E\n"%w)
         f.write("''')\n")
-        
+
         # Output the normalized array
         normalized = parser.sysresrem / parser.sysresrem.max()
         f.write("ImportString(u'`%s Normalized`(numeric)','''\n"%token_diff)
         for w in normalized:
             f.write("%E\n"%w)
         f.write("''')\n")
-    
+
     # Output the Normalized page
     f.write('''Add('page', name=u'Normalized', autoadd=False)
 To(u'Normalized')

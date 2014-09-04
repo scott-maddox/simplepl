@@ -35,14 +35,15 @@ from instruments.spectrometer import Spectrometer
 from instruments.lockin import Lockin
 from start_scan_dialog import StartScanDialog
 
+
 class MainWindow(QtGui.QMainWindow):
-    
+
     def __init__(self):
         super(MainWindow, self).__init__()
-        
+
         # Initialize QSettings object
-        self._settings = QtCore.QSettings("LASE", "SimplePL")
-        
+        self._settings = QtCore.QSettings()
+
         # Initialize instruments
         self.spectrometer = Spectrometer()
         self.lockin = Lockin()
@@ -306,11 +307,15 @@ class MainWindow(QtGui.QMainWindow):
         self.enableActions()
 
     def openFile(self):
-        filepath, filter = QtGui.QFileDialog.getOpenFileName(parent=self,
-                                caption='Open a PL spectrum file')
+        settings = QtCore.QSettings()
+        dirpath = settings.value('last_directory', '')
+        filepath, _filter = QtGui.QFileDialog.getOpenFileName(parent=self,
+                                caption='Open a PL spectrum file',
+                                dir=dirpath)
         if not filepath:
             return
         dirpath, filename = os.path.split(filepath)
+        settings.setValue('last_directory', dirpath)
         self.setWindowTitle(u'SimplePL - {}'.format(filename))
         spectrum = openMeasuredSpectrum(filepath)
         # Check if the system response removed is included.
@@ -322,19 +327,24 @@ class MainWindow(QtGui.QMainWindow):
             if not sysres_filepath:
                 return
             spectrum = openMeasuredSpectrum(filepath, sysres_filepath)
-        
+
         #TODO: allow more than one measured spectrum
         # remove the previous measured spectrum
         if self.spectrum:
             self.plot.removeSpectrum(self.spectrum)
-        
+
         # plot the measured spectrum
         self.plot.addSpectrum(spectrum)
         self.spectrum = spectrum
-    
+
     def saveFile(self):
-        filepath, filter = QtGui.QFileDialog.getSaveFileName(parent=self,
-                                caption='Save the current spectrum')
+        settings = QtCore.QSettings()
+        dirpath = settings.value('last_directory', '')
+        filepath, _filter = QtGui.QFileDialog.getSaveFileName(parent=self,
+                                caption='Save the current spectrum',
+                                dir=dirpath)
+        dirpath, _filename = os.path.split(filepath)
+        settings.setValue('last_directory', dirpath)
         wavelength = self.spectrum.wavelength
         rawSignal = self.spectrum.raw
         phase = self.spectrum.phase
@@ -342,11 +352,11 @@ class MainWindow(QtGui.QMainWindow):
         with open(filepath, 'w') as f:
             f.write('Wavelength\tSignal\tRaw_Signal\tPhase\n')
             for i in xrange(wavelength.size):
-                f.write('%.1f\t%E\t%E\t%.1f\n'%(wavelength[i],
-                                                signal[i],
-                                                rawSignal[i],
-                                                phase[i]))
-        
+                f.write('%.1f\t%E\t%E\t%.1f\n' % (wavelength[i],
+                                                  signal[i],
+                                                  rawSignal[i],
+                                                  phase[i]))
+
     def about(self):
         title = 'About SimplePL'
         text = """
@@ -375,7 +385,7 @@ class MainWindow(QtGui.QMainWindow):
         cp = QtGui.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
-    
+
     def moveTopLeft(self):
         p = QtGui.QDesktopWidget().availableGeometry().topLeft()
         self.move(p)

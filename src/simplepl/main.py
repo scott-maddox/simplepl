@@ -21,7 +21,6 @@
 
 # std lib imports
 import logging
-logging.basicConfig(level=logging.DEBUG)
 
 # third party imports
 from PySide import QtGui, QtCore
@@ -29,16 +28,28 @@ from PySide import QtGui, QtCore
 # local imports
 from main_window import MainWindow
 
-app = QtGui.QApplication([])
 
-# Create main window
-w = MainWindow()
-w.show()
-w.activateWindow()
-w.raise_()
+def run():
+    app = QtGui.QApplication([])
+    #TODO: remember last open/save directory
 
-## Start Qt event loop unless running in interactive mode or using pyside.
+    # Set up QSettings
+    app.setOrganizationName("Scott J Maddox")
+    app.setApplicationName("SimplePL")
+
+    # Set up logging
+    settings = QtCore.QSettings()
+    DEBUG = settings.value("debug", True)
+    if DEBUG:
+        logging.basicConfig(level=logging.DEBUG)
+
+    # Create main window
+    w = MainWindow()
+    w.show()
+    w.activateWindow()
+    w.raise_()
+
+    app.exec_()
+
 if __name__ == '__main__':
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+    run()
