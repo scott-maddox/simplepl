@@ -31,18 +31,17 @@ class StartScanDialog(QtGui.QDialog):
         super(StartScanDialog, self).__init__(parent)
         self.setModal(True)
 
-        self._settings = QtCore.QSettings("LASE", "SimplePL")
-        wlmin = float(self._settings.value('wavelength/min', 800.))
-        wlmax = float(self._settings.value('wavelength/max', 5500.))
-        precision = float(self._settings.value(
-                                             'wavelength/precision', 0.1))
+        settings = QtCore.QSettings()
+        wlmin = float(settings.value('wavelength/min', 800.))
+        wlmax = float(settings.value('wavelength/max', 5500.))
+        precision = float(settings.value('wavelength/precision', 0.1))
         decimals = floor(-log10(precision))
         if decimals < 0:
             decimals = 0
-        start = float(self._settings.value('scan/start', wlmin))
-        stop = float(self._settings.value('scan/stop', wlmax))
-        step = float(self._settings.value('scan/step', 10.))
-        delay = float(self._settings.value('scan/delay', 1.5))
+        start = float(settings.value('scan/start', wlmin))
+        stop = float(settings.value('scan/stop', wlmax))
+        step = float(settings.value('scan/step', 10.))
+        delay = float(settings.value('scan/delay', 1.5))
 
         self.startSpinBox = QtGui.QDoubleSpinBox()
         self.startSpinBox.setDecimals(decimals)
@@ -82,7 +81,7 @@ class StartScanDialog(QtGui.QDialog):
             QtCore.Qt.Horizontal, self)
         layout.addWidget(self.buttons)
 
-        # Connect buttongs
+        # Connect buttons
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
@@ -101,11 +100,11 @@ class StartScanDialog(QtGui.QDialog):
         step = dialog.stepSpinBox.value()
         delay = dialog.delaySpinBox.value()
 
-        _settings = QtCore.QSettings("LASE", "SimplePL")
-        _settings.setValue('scan/start', start)
-        _settings.setValue('scan/stop', stop)
-        _settings.setValue('scan/step', step)
-        _settings.setValue('scan/delay', delay)
-        _settings.sync()
+        settings = QtCore.QSettings()
+        settings.setValue('scan/start', start)
+        settings.setValue('scan/stop', stop)
+        settings.setValue('scan/step', step)
+        settings.setValue('scan/delay', delay)
+        settings.sync()
 
         return start, stop, step, delay, accepted

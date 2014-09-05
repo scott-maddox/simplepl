@@ -34,6 +34,7 @@ from expanding_spectrum import ExpandingSpectrum
 from instruments.spectrometer import Spectrometer
 from instruments.lockin import Lockin
 from start_scan_dialog import StartScanDialog
+from spectrometer_config_dialog import SpectrometerConfigDialog
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -188,15 +189,24 @@ class MainWindow(QtGui.QMainWindow):
         self.abortScanAction.triggered.connect(self.abortScan)
         self.abortScanAction.setEnabled(False)
 
+        self.configSpectrometerAction = QtGui.QAction('&Spectrometer', self)
+        self.configSpectrometerAction.setStatusTip(
+                                                'Configure the spectrometer')
+        self.configSpectrometerAction.setToolTip('Configure the spectrometer')
+        self.configSpectrometerAction.triggered.connect(
+                                                    self.configSpectrometer)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(self.openAction)
         fileMenu.addAction(self.saveAction)
         fileMenu.addAction(self.closeAction)
-        fileMenu = menubar.addMenu('&Scan')
-        fileMenu.addAction(self.gotoWavelengthAction)
-        fileMenu.addAction(self.startScanAction)
-        fileMenu.addAction(self.abortScanAction)
+        scanMenu = menubar.addMenu('&Scan')
+        scanMenu.addAction(self.gotoWavelengthAction)
+        scanMenu.addAction(self.startScanAction)
+        scanMenu.addAction(self.abortScanAction)
+        configMenu = menubar.addMenu('&Config')
+        configMenu.addAction(self.configSpectrometerAction)
         aboutMenu = menubar.addMenu('&About')
         aboutMenu.addAction(self.aboutAction)
 
@@ -250,6 +260,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(True)
         self.startScanAction.setEnabled(True)
         self.abortScanAction.setEnabled(False)
+        self.configSpectrometerAction.setEnabled(True)
 
     def disableActions(self):
         self.aboutAction.setEnabled(False)
@@ -258,6 +269,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(False)
         self.startScanAction.setEnabled(False)
         self.abortScanAction.setEnabled(True)
+        self.configSpectrometerAction.setEnabled(False)
 
     @QtCore.Slot(float)
     def _scanPart1(self, wavelength):
@@ -320,6 +332,16 @@ class MainWindow(QtGui.QMainWindow):
         self.lockin.sigAdjustAndGetOutputsFinished.disconnect(
                                             self._scanPart2)
         self.enableActions()
+
+    def configSpectrometer(self):
+        # Get the config parameters
+        entranceMirror, exitMirror, accepted = (
+                            SpectrometerConfigDialog.getSpectrometerConfig())
+        if not accepted:
+            return
+
+        self.spectrometer.setEntranceMirror(entranceMirror)
+        self.spectrometer.setExitMirror(exitMirror)
 
     def openFile(self):
         settings = QtCore.QSettings()
@@ -419,19 +441,18 @@ class MainWindow(QtGui.QMainWindow):
         self.move(p)
 
     def closeEvent(self, event):
-        if not self._scanSaved:
-            self.savePrompt()  # Prompt the user to save the scan
-
         reply = QtGui.QMessageBox.question(self, 'Quit?',
                 'Are you sure you want to quit?',
                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
                 QtGui.QMessageBox.No)
 
         if reply == QtGui.QMessageBox.Yes:
-            self.abortScan()
+            if not self._scanSaved:
+                self.abortScan()
+                self.savePrompt()  # Prompt the user to save the scan
             self.spectrometer.requestQuit()
             self.lockin.requestQuit()
-            self.spectrometer.wait()
+            self.spectrometer.thread.wait()
             self.lockin.wait()
             event.accept()
         else:
