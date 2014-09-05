@@ -41,6 +41,9 @@ class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
+        # Internal flags
+        self._scanSaved = True
+
         # Initialize QSettings object
         self._settings = QtCore.QSettings()
 
@@ -275,6 +278,10 @@ class MainWindow(QtGui.QMainWindow):
             self.spectrometer.setWavelength(self._wavelengthTarget)
 
     def startScan(self):
+        if not self._scanSaved:
+            self.savePrompt()  # Prompt the user to save the scan
+        self._scanSaved = False
+
         # Get the scan parameters
         start, _stop, _step, _delay, accepted = (
                                       StartScanDialog.getScanParameters())
@@ -338,12 +345,24 @@ class MainWindow(QtGui.QMainWindow):
         self.plot.addSpectrum(spectrum)
         self.spectrum = spectrum
 
+    def savePrompt(self):
+        reply = QtGui.QMessageBox.question(self, 'Save?',
+                'Do you want to save the current scan?',
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+                QtGui.QMessageBox.No)
+
+        if reply == QtGui.QMessageBox.Yes:
+            self.saveFile()
+
     def saveFile(self):
         settings = QtCore.QSettings()
         dirpath = settings.value('last_directory', '')
         filepath, _filter = QtGui.QFileDialog.getSaveFileName(parent=self,
                                 caption='Save the current spectrum',
-                                dir=dirpath)
+                                dir=dirpath,
+                                filter='Tab Delimited Text (*.txt)')
+        if not filepath:
+            return
         dirpath, _filename = os.path.split(filepath)
         settings.setValue('last_directory', dirpath)
         wavelength = self.spectrum.wavelength
@@ -357,6 +376,7 @@ class MainWindow(QtGui.QMainWindow):
                                                   signal[i],
                                                   rawSignal[i],
                                                   phase[i]))
+        self._scanSaved = True
 
     def about(self):
         title = 'About SimplePL'
@@ -392,6 +412,9 @@ class MainWindow(QtGui.QMainWindow):
         self.move(p)
 
     def closeEvent(self, event):
+        if not self._scanSaved:
+            self.savePrompt()  # Prompt the user to save the scan
+
         reply = QtGui.QMessageBox.question(self, 'Quit?',
                 'Are you sure you want to quit?',
                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
