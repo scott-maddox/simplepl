@@ -163,6 +163,12 @@ class MainWindow(QtGui.QMainWindow):
         self.saveAction.setShortcut('Ctrl+S')
         self.saveAction.triggered.connect(self.saveFile)
 
+        self.closeAction = QtGui.QAction('Close &Window', self)
+        self.closeAction.setStatusTip('Close the Window')
+        self.closeAction.setToolTip('Close the Window')
+        self.closeAction.setShortcut('Ctrl+W')
+        self.closeAction.triggered.connect(self.close)
+
         self.gotoWavelengthAction = QtGui.QAction('&Go to wavelength', self)
         self.gotoWavelengthAction.setStatusTip('Go to a wavelength')
         self.gotoWavelengthAction.setToolTip('Go to a wavelength')
@@ -186,6 +192,7 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(self.openAction)
         fileMenu.addAction(self.saveAction)
+        fileMenu.addAction(self.closeAction)
         fileMenu = menubar.addMenu('&Scan')
         fileMenu.addAction(self.gotoWavelengthAction)
         fileMenu.addAction(self.startScanAction)
