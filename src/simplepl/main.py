@@ -30,6 +30,7 @@ from single_process import single_process
 # local imports
 from main_window import MainWindow
 
+
 @single_process
 def run(debug, simulate):
     app = QtGui.QApplication([])
@@ -42,6 +43,7 @@ def run(debug, simulate):
     settings = QtCore.QSettings()
     settings.setValue('debug', debug)
     settings.setValue('simulate', simulate)
+    settings.sync()
     if debug:
         logging.basicConfig(level=logging.DEBUG)
 

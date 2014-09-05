@@ -26,69 +26,75 @@ from PySide import QtCore
 
 # local imports
 
-class Lockin(QtCore.QThread):
+
+class Lockin(QtCore.QObject):
     '''
     Provides an asynchronous QThread interface to the lockin amplifier.
-    
+
     Under the hood, this class uses Signals to call functions in another
     thread. The results are emitted in other Signals, which are specified
     in the doc strings.
     '''
     _sigRequestQuit = QtCore.Signal()
     _sigAdjustAndGetOutputs = QtCore.Signal(float)
-    
+
     sigRawSignal = QtCore.Signal(float)
     sigPhase = QtCore.Signal(float)
     sigAdjustAndGetOutputsFinished = QtCore.Signal(float, float)
-    
+
     def __init__(self):
         super(Lockin, self).__init__()
         self._inst = None
-        self._sigRequestQuit.connect(self._Quit)
+        self._sigRequestQuit.connect(self.quit)
         self._sigAdjustAndGetOutputs.connect(self._adjustAndGetOutputs)
-        self.moveToThread(self)
-        self.start()
-    
+
+        # Start the thread
+        self.thread = QtCore.QThread()
+        self.moveToThread(self.thread)
+        self.thread.started.connect(self._started)
+        self.thread.start()
+
     @QtCore.Slot()
-    def _Quit(self):
-        self.quit()
-    
+    def quit(self):
+        self.thread.quit()
+
     def requestQuit(self):
         '''
         Sends a request to the spectrometer thread to quit.
-        
+
         In order to give it time to quit on close, use the following:
             spectrometer.requestQuit()
             spectrometer.wait()
         '''
         self._sigRequestQuit.emit()
-    
-    def run(self):
-        try:
-            from drivers.srs_sr830 import SR830
-        except (OSError, ImportError):
-            print "Couldn't load lockin device driver. Simulating..."
+
+    def _started(self):
+        settings = QtCore.QSettings()
+        simulate = settings.value('simulate', False)
+        if simulate:
+            print "Simulating lock-in..."
             from drivers.srs_sr830_sim import SR830
+        else:
+            from drivers.srs_sr830 import SR830
         self._inst = SR830()
-        self.exec_()
-    
+
     @QtCore.Slot(float)
     def _adjustAndGetOutputs(self, delay):
         raw_signal, phase = self._inst.adjust_and_get_outputs(delay)
         self.sigRawSignal.emit(raw_signal)
         self.sigPhase.emit(phase)
         self.sigAdjustAndGetOutputsFinished.emit(raw_signal, phase)
-    
+
     def adjustAndGetOutputs(self, delay):
         '''
         Adjust the sensitivity and gets the signal and phase.
-        
+
         Params
         ------
         delay : float
             The delay time in seconds. A delay of 5x the time constant is
             strongly recommended.
-        
+
         Emits
         -----
         sigAdjustAndGetOutputsFinished(float, float)

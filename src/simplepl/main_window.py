@@ -453,7 +453,7 @@ class MainWindow(QtGui.QMainWindow):
             self.spectrometer.requestQuit()
             self.lockin.requestQuit()
             self.spectrometer.thread.wait()
-            self.lockin.wait()
+            self.lockin.thread.wait()
             event.accept()
         else:
             event.ignore()

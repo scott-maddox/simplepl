@@ -71,6 +71,8 @@ class Spectrometer(QtCore.QObject):
         self._sigSetFilter.connect(self._setFilter)
         self._sigGetWavelength.connect(self._getWavelength)
         self._sigSetWavelength.connect(self._setWavelength)
+        self._sigSetEntranceMirror.connect(self._setEntranceMirror)
+        self._sigSetExitMirror.connect(self._setExitMirror)
 
         # Start the thread
         self.thread = QtCore.QThread()
@@ -82,21 +84,20 @@ class Spectrometer(QtCore.QObject):
         # Initialize QSettings object
         self._settings = QtCore.QSettings()
 
-        # Initialize the spectrometer
-        try:
-            from drivers.spectra_pro_2500i import SpectraPro2500i
-        except (OSError, ImportError):
-            print "Couldn't load spectrometer device driver. Simulating..."
+        simulate = self._settings.value('simulate', False)
+        if simulate:
+            print "Simulating spectrometer and filter wheel..."
             from drivers.spectra_pro_2500i_sim import SpectraPro2500i
+            from drivers.thorlabs_fw102c_sim import FW102C
+        else:
+            from drivers.spectra_pro_2500i import SpectraPro2500i
+            from drivers.thorlabs_fw102c import FW102C
+
+        # Initialize the spectrometer
         with QtCore.QMutexLocker(self._spectrometerLock):
             self._spectrometer = SpectraPro2500i()
 
         # Initialize the filter wheel
-        try:
-            from drivers.thorlabs_fw102c import FW102C
-        except (OSError, ImportError):
-            print "Couldn't load filter wheel device driver. Simulating..."
-            from drivers.thorlabs_fw102c_sim import FW102C
         filterWheelPort = int(self._settings.value('filterWheel/port', 3))
         with QtCore.QMutexLocker(self._filterWheelLock):
             self._filterWheel = FW102C(port=filterWheelPort)
