@@ -26,6 +26,7 @@ import numpy as np
 
 # local imports
 
+
 class SimplePLParser(object):
     def __init__(self, filepath, sysresFilepath=None):
         '''
@@ -39,11 +40,11 @@ class SimplePLParser(object):
         if sysresFilepath is not None:
             self._sysresParser = SimplePLParser(sysresFilepath)
             self._sysresParser.parse()
-    
+
     def get_sysres(self, wavelength):
         i = np.searchsorted(self._sysresParser.wavelength, wavelength)
         return self._sysresParser.raw[i]
-    
+
     def parse(self):
         self.wavelength = []
         self.raw = []
@@ -64,37 +65,37 @@ class SimplePLParser(object):
             else:
                 raise NotImplementedError()
         self.wavelength = np.array(self.wavelength, dtype=np.double)
-        self.energy = 1239.842/self.wavelength
+        self.energy = 1239.842 / self.wavelength
         self.raw = np.array(self.raw, dtype=np.double)
         self.phase = np.array(self.phase, dtype=np.double)
         self.sysresrem = np.array(self.sysresrem, dtype=np.double)
-    
+
     def _parseLabVIEW(self, first_line, f):
         self.sample_id = first_line[len('**\tSample ID:')].strip()
         self.laser_power = f.readline()[len('**\tLaser Power:')].strip()
         self.measurement_type = f.readline()[len('**\tMeasurement Type:')].strip()
         self.datetime_str = f.readline()[len('**\t')].strip()
-        f.readline() # grating (doesn't work properly)
+        f.readline()  # grating (doesn't work properly)
         self.time_constant = f.readline()[len('**\tTime Constant:')].strip()
         self.notes = f.readline()[len('**\tNotes:')].strip()
-        f.readline() # blank
-        f.readline() # column headers
-        f.readline() # astrisks
+        f.readline()  # blank
+        f.readline()  # column headers
+        f.readline()  # astrisks
         while True:
             line = f.readline()
             if not line:
-                break # end of file
+                break  # end of file
             values = line.split()
             self.wavelength.append(float(values[0]))
             self.raw.append(float(values[1]))
             self.sysresrem.append(float(values[2]))
-            
+
     def _parseRaw(self, first_line, f):
         # first_line is the column headers
         while True:
             line = f.readline()
             if not line:
-                break # end of file
+                break  # end of file
             values = line.split()
             wavelength = float(values[0])
             raw = float(values[1])
@@ -104,13 +105,13 @@ class SimplePLParser(object):
                 sysres = self.get_sysres(wavelength)
                 sysresrem = raw / sysres
                 self.sysresrem.append(sysresrem)
-            
+
     def _parseSimple(self, first_line, f):
         # first_line is the column headers
         while True:
             line = f.readline()
             if not line:
-                break # end of file
+                break  # end of file
             values = line.split()
             wavelength = float(values[0])
             raw = float(values[1])
@@ -122,7 +123,7 @@ class SimplePLParser(object):
                 sysres = self.get_sysres(wavelength)
                 sysresrem = raw / sysres
                 self.sysresrem.append(sysresrem)
-            
+
     def _parseSysResRem(self, first_line, f):
         if self.sysresFilepath is not None:
             print "WARNING: Ignoring the provided system response file"
@@ -130,13 +131,13 @@ class SimplePLParser(object):
         while True:
             line = f.readline()
             if not line:
-                break # end of file
+                break  # end of file
             values = line.split()
             wavelength = float(values[0])
             sysresrem = float(values[1])
             self.wavelength.append(wavelength)
             self.sysresrem.append(sysresrem)
-            
+
     def _parseWavelengthSignalRawSignalPhase(self, first_line, f):
         if self.sysresFilepath is not None:
             print "WARNING: Ignoring the system response removed column"
@@ -144,33 +145,15 @@ class SimplePLParser(object):
         while True:
             line = f.readline()
             if not line:
-                break # end of file
+                break  # end of file
             values = line.split()
             wavelength = float(values[0])
             raw = float(values[2])
             self.wavelength.append(wavelength)
-            #TODO: update MeasuredSpectrum to have optional raw and phase
+            # TODO: update MeasuredSpectrum to have optional raw and phase
             if self.sysresFilepath is not None:
                 sysres = self.get_sysres(wavelength)
                 sysresrem = raw / sysres
                 self.sysresrem.append(sysresrem)
             else:
                 self.sysresrem.append(float(values[1]))
-                
-
-if __name__ == '__main__':
-    # Calculate sysresrem, and output it
-    from simplepl.utils import open_dialog, save_dialog
-    print 'Select the PL file to open...'
-    filename = open_dialog('*.*')
-    print 'Select the system response file to open...'
-    sysres_filename = open_dialog('*.*')
-    print 'Select where to save the system response removed file...'
-    sysresrem_filename = save_dialog('*.*')
-    parser = SimplePLParser(filename, sysres_filename)
-    parser.parse()
-    
-    with open(sysresrem_filename, 'w') as f:
-        f.write('Wavelength\tSysResRem\n')
-        for i in xrange(len(parser.wavelength)):
-            f.write('%.1f\t%E\n'%(parser.wavelength[i], parser.sysresrem[i]))

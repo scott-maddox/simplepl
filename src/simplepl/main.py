@@ -21,6 +21,7 @@
 
 # std lib imports
 import logging
+import argparse
 
 # third party imports
 from PySide import QtGui, QtCore
@@ -29,7 +30,7 @@ from PySide import QtGui, QtCore
 from main_window import MainWindow
 
 
-def run():
+def run(debug, simulate):
     app = QtGui.QApplication([])
     #TODO: remember last open/save directory
 
@@ -39,8 +40,9 @@ def run():
 
     # Set up logging
     settings = QtCore.QSettings()
-    DEBUG = settings.value("debug", True)
-    if DEBUG:
+    settings.setValue('debug', debug)
+    settings.setValue('simulate', simulate)
+    if debug:
         logging.basicConfig(level=logging.DEBUG)
 
     # Create main window
@@ -52,4 +54,8 @@ def run():
     app.exec_()
 
 if __name__ == '__main__':
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--simulate', action='store_true')
+    args = parser.parse_args()
+    run(args.debug, args.simulate)

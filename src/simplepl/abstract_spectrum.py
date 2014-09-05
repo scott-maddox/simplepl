@@ -26,6 +26,7 @@ from PySide import QtCore
 
 # local imports
 
+
 class AbstractSpectrum(QtCore.QObject):
     sigChanged = QtCore.Signal()
     wavelength = None

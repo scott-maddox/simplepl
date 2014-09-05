@@ -29,18 +29,20 @@ import numpy as np
 from abstract_spectrum import AbstractSpectrum
 from simple_pl_parser import SimplePLParser
 
+
 class MeasuredSpectrum(AbstractSpectrum):
-    
+
     def __init__(self, wavelength, intensity):
         super(MeasuredSpectrum, self).__init__()
         self.wavelength = wavelength
         self.intensity = intensity
-    
+
     def _getEnergy(self):
         '''Returns the energy array'''
-        return 1239.842/self.wavelength
-    
+        return 1239.842 / self.wavelength
+
     energy = QtCore.Property(np.ndarray, _getEnergy)
+
 
 def openMeasuredSpectrum(filepath, sysres_filepath=None):
     parser = SimplePLParser(filepath, sysres_filepath)

@@ -25,18 +25,19 @@ designed for efficient real-time plotting.
 
 import numpy as np
 
+
 class ExpandingBuffer(object):
     '''
     A numpy array based expanding buffer that allows efficient appending
     and accessing of ordered values. This implementation is designed
     specifically for real-time plotting.
     '''
-    
+
     # np.float64 needed to hold time.time()
     def __init__(self, initial_size=1024, dtype=np.float64):
         '''
         Creates an ExpandingBuffer with the given initial size and dtype.
-        
+
         :param integer size: the initial size of the ExpandingBuffer
         :param numpy.dtype dtype: the data type of the contained values
         :returns ExpandingBuffer:
@@ -46,14 +47,14 @@ class ExpandingBuffer(object):
         self.dtype = dtype
         self._buffer = np.empty(initial_size, dtype=dtype)
         self._index = 0
-    
+
     @classmethod
     def from_array(cls, array):
         '''
         Creates a ExpandingBuffer from the given numpy array. The dtype will
         be the same as the array, and the initial values are copied in from
         the array.
-        
+
         :param numpy.array array: the numpy array to create the
                                   ExpandingBuffer from
         :returns ExpandingBuffer:
@@ -65,7 +66,7 @@ class ExpandingBuffer(object):
     def append(self, value):
         '''
         Append a value to the end of the ExpandingBuffer.
-        
+
         :param number value: a value to append to the ExpandingBuffer
         :returns None:
         '''
@@ -76,15 +77,15 @@ class ExpandingBuffer(object):
             self._size = self._size * 2
             self._buffer = np.empty(self._size, dtype=self.dtype)
             self._buffer[:old_size] = old_buffer
-            
+
         i = self._index
         self._buffer[i] = value
-        self._index+=1
-    
+        self._index += 1
+
     def extend(self, iterable):
         '''
         Extend the ExpandingBuffer with the values in iterable.
-        
+
         :param sequence iterable: a sequency of values to append
         :returns None:
         '''
@@ -94,21 +95,21 @@ class ExpandingBuffer(object):
     def get(self):
         '''
         Get the array.
-        
+
         :param None:
         :returns numpy.array: the array of values
         '''
         return self._buffer[0:self._index]
-        
+
     def clear(self):
         '''
         Clears the contents of the ExpandingBuffer.
-        
+
         :param None:
-        :returns None: 
+        :returns None:
         '''
-        self._index=0
-        
+        self._index = 0
+
     def __len__(self):
         return self._index
 

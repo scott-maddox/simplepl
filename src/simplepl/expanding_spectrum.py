@@ -31,6 +31,7 @@ import numpy as np
 from measured_spectrum import MeasuredSpectrum
 from expanding_buffer import ExpandingBuffer
 
+
 class ExpandingSpectrum(MeasuredSpectrum):
     def __init__(self, sysresParser=None):
         super(MeasuredSpectrum, self).__init__()
@@ -40,7 +41,7 @@ class ExpandingSpectrum(MeasuredSpectrum):
         self._raw = ExpandingBuffer()
         self._phase = ExpandingBuffer()
         self._sysresrem = ExpandingBuffer()
-    
+
     def append(self, wavelength, raw, phase):
         if self.sysresParser is None:
             log.warning("No sysrem response provided. Using raw value.")
@@ -49,33 +50,33 @@ class ExpandingSpectrum(MeasuredSpectrum):
             sysres = self.sysresParser.get_sysres(wavelength)
             sysresrem = raw / sysres
         self._wavelength.append(wavelength)
-        self._energy.append(1239.842/wavelength)
+        self._energy.append(1239.842 / wavelength)
         self._raw.append(raw)
         self._phase.append(phase)
         self._sysresrem.append(sysresrem)
         self.sigChanged.emit()
-    
+
     def _getWavelength(self):
         return self._wavelength.get()
-    
+
     def _getRaw(self):
         return self._raw.get()
-    
+
     def _getPhase(self):
         return self._phase.get()
-    
+
     def _getIntensity(self):
         return self._sysresrem.get()
-    
+
     def _getEnergy(self):
         return self._energy.get()
-    
+
     wavelength = QtCore.Property(np.ndarray, _getWavelength)
     raw = QtCore.Property(np.ndarray, _getRaw)
     phase = QtCore.Property(np.ndarray, _getPhase)
     intensity = QtCore.Property(np.ndarray, _getIntensity)
     energy = QtCore.Property(np.ndarray, _getEnergy)
-    
+
     def save(self, filepath):
         wavelength = self._wavelength.get()
         raw = self._raw.get()
@@ -83,5 +84,5 @@ class ExpandingSpectrum(MeasuredSpectrum):
         with open(filepath, 'w') as f:
             f.write('Wavelength\tRaw\tSysResRem\n')
             for i in xrange(wavelength.size):
-                f.write('%.1f\t%E\t%E\n'%(wavelength[i], raw[i],
+                f.write('%.1f\t%E\t%E\n' % (wavelength[i], raw[i],
                                           sysresrem[i]))

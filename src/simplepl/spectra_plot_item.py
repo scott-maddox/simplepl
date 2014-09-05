@@ -22,8 +22,9 @@
 # std lib imports
 
 # third party imports
-import pyqtgraph as pg
 from PySide import QtCore
+import pyqtgraph as pg
+from pyqtgraph.graphicsItems.PlotItem import PlotItem
 
 # local imports
 from abstract_spectrum import AbstractSpectrum
@@ -34,14 +35,15 @@ pg.setConfigOption('foreground', 'k')
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
 
-class SpectraPlotItem(pg.PlotItem):
-    #TODO: allow adding and removing spectrum
+
+class SpectraPlotItem(PlotItem):
+    # TODO: allow adding and removing spectrum
     def __init__(self, parent=None, name=None, labels=None,
                  title=None, viewBox=None, axisItems=None, enableMenu=True,
                  *spectra, **kwargs):
         '''
         **Keyword arguments:**
-        
+
             ================ ================================================
             xaxis            Can be 'wavelength' (default) or 'energy'
             ================ ================================================
@@ -54,7 +56,7 @@ class SpectraPlotItem(pg.PlotItem):
         self._xaxis = kwargs.get('xaxis', 'wavelength')
         for spectrum in spectra:
             self.addSpectrum(spectrum)
-    
+
     @QtCore.Slot(AbstractSpectrum)
     def removeSpectrum(self, spectrum):
         if spectrum not in self._spectra:
@@ -81,7 +83,7 @@ class SpectraPlotItem(pg.PlotItem):
         self._lines.append(line)
         self._spectra.append(spectrum)
         spectrum.sigChanged.connect(self.updateLines)
-    
+
     def updateLines(self):
         for spectrum, line in zip(self._spectra, self._lines):
             if self._xaxis == 'wavelength':
@@ -93,32 +95,6 @@ class SpectraPlotItem(pg.PlotItem):
                                  .format(self._xaxis))
             y = spectrum.intensity
             line.setData(x=x, y=y)
-    
+
     def autofit(self):
         raise NotImplementedError()
-
-if __name__ == '__main__':
-    from PySide import QtGui, QtCore
-    from simulated_spectrum import (GaussianSpectrum, LorentzianSpectrum)
-    import numpy as np
-    app = QtGui.QApplication([])
-    energy = np.linspace(-5, 5, 1000)
-    s1 = GaussianSpectrum(energy=energy)
-    s2 = LorentzianSpectrum(energy=energy)
-    
-    w = pg.GraphicsLayoutWidget()
-    
-    #w = SpectraPlotItem(spectrum, xaxis='energy')
-    p = SpectraPlotItem(xaxis='energy')
-    p.addSpectrum(s1)
-    p.addSpectrum(s2)
-    p.removeSpectrum(s1)
-    p.addSpectrum(s1)
-    
-    w.addItem(p, 0, 0)
-    w.show()
-    w.raise_()
-    
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()

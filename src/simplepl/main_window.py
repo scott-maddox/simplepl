@@ -57,10 +57,11 @@ class MainWindow(QtGui.QMainWindow):
         self.spectrometer.getGrating()
         self.spectrometer.getFilter()
         self.spectrometer.getWavelength()
-        
+
         # Initialize the current instrument values
         self._isScanning = False
-        self._sysresParser = SimplePLParser(None, '2014-04-28 sysres - InSb detector - 2.5 mm slits - N2.txt')
+        self._sysresParser = SimplePLParser(None,
+                '2014-05-01 sysres - InSb detector - 2.5 mm slits - N2.txt')
         self._grating = None
         self._filter = None
         self._wavelength = None
@@ -68,75 +69,75 @@ class MainWindow(QtGui.QMainWindow):
         self._rawSignal = None
         self._phase = None
         self._wavelengthTarget = None
-        
+
         # Initialize GUI stuff
         self.spectrum = None
         self.initUI()
-    
+
     @QtCore.Slot()
     def changingGrating(self):
         self.gratingLabel.setText('Grating=?')
         self.wavelengthLabel.setText('Wavelength=?')
-    
+
     @QtCore.Slot()
     def changingFilter(self):
         self.filterLabel.setText('Filter=?')
-    
+
     @QtCore.Slot(float)
     def updateGrating(self, grating):
         self._grating = grating
         try:
-            s = 'Grating=%d'%grating
+            s = 'Grating=%d' % grating
         except:
             s = 'Grating=?'
         self.gratingLabel.setText(s)
-    
+
     @QtCore.Slot(float)
-    def updateFilter(self, filter):
-        self._filter = filter
+    def updateFilter(self, filt):
+        self._filter = filt
         try:
-            s = 'Filter=%d'%filter
+            s = 'Filter=%d' % filt
         except:
             s = 'Filter=?'
         self.filterLabel.setText(s)
-    
+
     @QtCore.Slot(float)
     def updateWavelength(self, wavelength):
         self._wavelength = wavelength
         try:
-            s = 'Wavelength=%.1f'%wavelength
+            s = 'Wavelength=%.1f' % wavelength
         except:
             s = 'Wavelength=?'
         self.wavelengthLabel.setText(s)
-    
+
     @QtCore.Slot(float)
     def updateRawSignal(self, rawSignal):
         self._rawSignal = rawSignal
         try:
-            s = 'Raw Signal=%.3E'%rawSignal
+            s = 'Raw Signal=%.3E' % rawSignal
         except:
             s = 'Raw Signal=?'
         self.rawSignalLabel.setText(s)
-        
+
         # Calculate the signal by dividing by the system response,
         # and update that too
         sysres = self._sysresParser.get_sysres(self._wavelength)
-        self.updateSignal(rawSignal/sysres)
-    
+        self.updateSignal(rawSignal / sysres)
+
     @QtCore.Slot(float)
     def updateSignal(self, signal):
         self._signal = signal
         try:
-            s = 'Signal=%.3E'%signal
+            s = 'Signal=%.3E' % signal
         except:
             s = 'Signal=?'
         self.signalLabel.setText(s)
-    
+
     @QtCore.Slot(float)
     def updatePhase(self, phase):
         self._phase = phase
         try:
-            s = 'Phase=%.1f'%phase
+            s = 'Phase=%.1f' % phase
         except:
             s = 'Phase=?'
         self.phaseLabel.setText(s)
@@ -188,7 +189,7 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu.addAction(self.abortScanAction)
         aboutMenu = menubar.addMenu('&About')
         aboutMenu.addAction(self.aboutAction)
-        
+
         statusBar = self.statusBar()
         self.gratingLabel = QtGui.QLabel('Grating=?')
         self.filterLabel = QtGui.QLabel('Filter=?')
@@ -202,17 +203,17 @@ class MainWindow(QtGui.QMainWindow):
         statusBar.addWidget(self.signalLabel, stretch=1)
         statusBar.addWidget(self.rawSignalLabel, stretch=1)
         statusBar.addWidget(self.phaseLabel, stretch=1)
-        
+
         view = pg.GraphicsLayoutWidget()
         self.setCentralWidget(view)
         self.plot = SpectraPlotItem(xaxis='wavelength')
         view.addItem(self.plot, 0, 0)
         self.setCentralWidget(view)
-        
+
         self.setWindowTitle('SimplePL')
-        self.resize(1280,800)
+        self.resize(1280, 800)
         self.moveTopLeft()
-    
+
     def setWavelength(self):
         wavelengthMin = float(self._settings.value('wavelength/min', 800.))
         wavelengthMax = float(self._settings.value('wavelength/max', 5500.))
@@ -231,7 +232,7 @@ class MainWindow(QtGui.QMainWindow):
         self._wavelengthTarget = target
         self.wavelengthLabel.setText('Wavelength=?')
         self.spectrometer.setWavelength(self._wavelengthTarget)
-    
+
     def enableActions(self):
         self.aboutAction.setEnabled(True)
         self.openAction.setEnabled(True)
@@ -239,7 +240,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(True)
         self.startScanAction.setEnabled(True)
         self.abortScanAction.setEnabled(False)
-    
+
     def disableActions(self):
         self.aboutAction.setEnabled(False)
         self.openAction.setEnabled(False)
@@ -247,7 +248,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(False)
         self.startScanAction.setEnabled(False)
         self.abortScanAction.setEnabled(True)
-    
+
     @QtCore.Slot(float)
     def _scanPart1(self, wavelength):
         self.updateWavelength(wavelength)
@@ -258,7 +259,7 @@ class MainWindow(QtGui.QMainWindow):
     def _scanPart2(self, rawSignal, phase):
         # Update the spectrum
         self.spectrum.append(self._wavelength, rawSignal, phase)
-        
+
         # Check if the scan is finished
         stop = float(self._settings.value('scan/stop', 5500.))
         step = float(self._settings.value('scan/step', 10.))
@@ -272,16 +273,16 @@ class MainWindow(QtGui.QMainWindow):
             # If it isn't, go to the next wavelength
             self.wavelengthLabel.setText('Wavelength=?')
             self.spectrometer.setWavelength(self._wavelengthTarget)
-    
+
     def startScan(self):
         # Get the scan parameters
-        start, stop, step, delay, accepted = (
+        start, _stop, _step, _delay, accepted = (
                                       StartScanDialog.getScanParameters())
         if not accepted:
             return
-        
+
         self.disableActions()
-        #TODO: keep the last spectrum for comparison?
+        # TODO: keep the last spectrum for comparison?
         if self.spectrum:
             self.plot.removeSpectrum(self.spectrum)
         self.spectrum = ExpandingSpectrum(self._sysresParser)
@@ -291,10 +292,10 @@ class MainWindow(QtGui.QMainWindow):
         self.lockin.sigAdjustAndGetOutputsFinished.connect(
                                             self._scanPart2)
         self._isScanning = True
-        
+
         self._wavelengthTarget = start
         self.spectrometer.setWavelength(self._wavelengthTarget)
-    
+
     def abortScan(self):
         if not self._isScanning:
             self.enableActions()
@@ -322,13 +323,14 @@ class MainWindow(QtGui.QMainWindow):
         # If not, ask user to select a system response file.
         print spectrum.intensity
         if not len(spectrum.intensity):
-            sysres_filepath, filter = QtGui.QFileDialog.getOpenFileName(
-                parent=self, caption='Open a system response file')
+            sysres_filepath, _filter = QtGui.QFileDialog.getOpenFileName(
+                                        parent=self,
+                                        caption='Open a system response file')
             if not sysres_filepath:
                 return
             spectrum = openMeasuredSpectrum(filepath, sysres_filepath)
 
-        #TODO: allow more than one measured spectrum
+        # TODO: allow more than one measured spectrum
         # remove the previous measured spectrum
         if self.spectrum:
             self.plot.removeSpectrum(self.spectrum)
@@ -397,7 +399,7 @@ class MainWindow(QtGui.QMainWindow):
                 QtGui.QMessageBox.No)
 
         if reply == QtGui.QMessageBox.Yes:
-            #TODO: do something if data is unsaved?
+            # TODO: do something if data is unsaved?
             self.abortScan()
             self.spectrometer.requestQuit()
             self.lockin.requestQuit()
