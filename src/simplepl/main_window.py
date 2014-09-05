@@ -271,6 +271,7 @@ class MainWindow(QtGui.QMainWindow):
         self.startScanAction.setEnabled(True)
         self.abortScanAction.setEnabled(False)
         self.configSpectrometerAction.setEnabled(True)
+        self.configLockinAction.setEnabled(True)
 
     def disableActions(self):
         self.aboutAction.setEnabled(False)
@@ -280,6 +281,7 @@ class MainWindow(QtGui.QMainWindow):
         self.startScanAction.setEnabled(False)
         self.abortScanAction.setEnabled(True)
         self.configSpectrometerAction.setEnabled(False)
+        self.configLockinAction.setEnabled(False)
 
     @QtCore.Slot(float)
     def _scanPart1(self, wavelength):
@@ -310,6 +312,10 @@ class MainWindow(QtGui.QMainWindow):
         if not self._scanSaved:
             self.savePrompt()  # Prompt the user to save the scan
         self._scanSaved = False
+
+        # Apply the spectrometer and lockin config's
+        self.applySpectrometerConfig()
+        self.applyLockinConfig()
 
         # Get the scan parameters
         start, _stop, _step, _delay, accepted = (
@@ -359,6 +365,27 @@ class MainWindow(QtGui.QMainWindow):
                 LockinConfigDialog.getLockinConfig(self.lockin, parent=self))
         if not accepted:
             return
+        self.lockin.setTimeConstantIndex(timeConstantIndex)
+        self.lockin.setReserveModeIndex(reserveModeIndex)
+        self.lockin.setInputLineFilterIndex(inputLineFilterIndex)
+
+    def applySpectrometerConfig(self):
+        settings = QtCore.QSettings()
+        entranceMirror = settings.value('spectrometer/entrance_mirror',
+                                        'Front')
+        exitMirror = settings.value('spectrometer/exit_mirror',
+                                    'Side')
+        self.spectrometer.setEntranceMirror(entranceMirror)
+        self.spectrometer.setExitMirror(exitMirror)
+
+    def applyLockinConfig(self):
+        settings = QtCore.QSettings()
+        timeConstantIndex = settings.value('lockin/time_constant_index',
+                                           9)  # 300 ms default
+        reserveModeIndex = settings.value('lockin/reserve_mode_index',
+                                          0)  # High reserve default
+        inputLineFilterIndex = settings.value('lockin/input_line_filter_index',
+                                              3)  # both filters default
         self.lockin.setTimeConstantIndex(timeConstantIndex)
         self.lockin.setReserveModeIndex(reserveModeIndex)
         self.lockin.setInputLineFilterIndex(inputLineFilterIndex)
