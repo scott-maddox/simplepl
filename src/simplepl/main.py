@@ -25,11 +25,12 @@ import argparse
 
 # third party imports
 from PySide import QtGui, QtCore
+from single_process import single_process
 
 # local imports
 from main_window import MainWindow
 
-
+@single_process
 def run(debug, simulate):
     app = QtGui.QApplication([])
 
