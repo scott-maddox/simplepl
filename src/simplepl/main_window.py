@@ -27,14 +27,15 @@ from PySide import QtGui, QtCore
 import pyqtgraph as pg
 
 # local imports
-from simple_pl_parser import SimplePLParser
-from spectra_plot_item import SpectraPlotItem
-from measured_spectrum import openMeasuredSpectrum
-from expanding_spectrum import ExpandingSpectrum
-from instruments.spectrometer import Spectrometer
-from instruments.lockin import Lockin
-from start_scan_dialog import StartScanDialog
-from spectrometer_config_dialog import SpectrometerConfigDialog
+from .simple_pl_parser import SimplePLParser
+from .spectra_plot_item import SpectraPlotItem
+from .measured_spectrum import openMeasuredSpectrum
+from .expanding_spectrum import ExpandingSpectrum
+from .instruments.spectrometer import Spectrometer
+from .instruments.lockin import Lockin
+from .start_scan_dialog import StartScanDialog
+from .spectrometer_config_dialog import SpectrometerConfigDialog
+from .lockin_config_dialog import LockinConfigDialog
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -196,6 +197,14 @@ class MainWindow(QtGui.QMainWindow):
         self.configSpectrometerAction.triggered.connect(
                                                     self.configSpectrometer)
 
+        self.configLockinAction = QtGui.QAction('&Lockin', self)
+        self.configLockinAction.setStatusTip(
+                                            'Configure the lock-in amplifier')
+        self.configLockinAction.setToolTip(
+                                            'Configure the lock-in amplifier')
+        self.configLockinAction.triggered.connect(
+                                                    self.configLockin)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(self.openAction)
@@ -207,6 +216,7 @@ class MainWindow(QtGui.QMainWindow):
         scanMenu.addAction(self.abortScanAction)
         configMenu = menubar.addMenu('&Config')
         configMenu.addAction(self.configSpectrometerAction)
+        configMenu.addAction(self.configLockinAction)
         aboutMenu = menubar.addMenu('&About')
         aboutMenu.addAction(self.aboutAction)
 
@@ -303,7 +313,7 @@ class MainWindow(QtGui.QMainWindow):
 
         # Get the scan parameters
         start, _stop, _step, _delay, accepted = (
-                                      StartScanDialog.getScanParameters())
+                            StartScanDialog.getScanParameters(parent=self))
         if not accepted:
             return
 
@@ -336,12 +346,22 @@ class MainWindow(QtGui.QMainWindow):
     def configSpectrometer(self):
         # Get the config parameters
         entranceMirror, exitMirror, accepted = (
-                            SpectrometerConfigDialog.getSpectrometerConfig())
+                SpectrometerConfigDialog.getSpectrometerConfig(parent=self))
         if not accepted:
             return
 
         self.spectrometer.setEntranceMirror(entranceMirror)
         self.spectrometer.setExitMirror(exitMirror)
+
+    def configLockin(self):
+        # Get the config parameters
+        timeConstantIndex, reserveModeIndex, inputLineFilterIndex, accepted = (
+                LockinConfigDialog.getLockinConfig(self.lockin, parent=self))
+        if not accepted:
+            return
+        self.lockin.setTimeConstantIndex(timeConstantIndex)
+        self.lockin.setReserveModeIndex(reserveModeIndex)
+        self.lockin.setInputLineFilterIndex(inputLineFilterIndex)
 
     def openFile(self):
         settings = QtCore.QSettings()

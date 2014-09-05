@@ -42,8 +42,12 @@ class Lockin(QtCore.QObject):
     sigPhase = QtCore.Signal(float)
     sigAdjustAndGetOutputsFinished = QtCore.Signal(float, float)
 
+    sigTimeConstantIndex = QtCore.Signal(int)
+    sigTimeConstantSeconds = QtCore.Signal(float)
+
     def __init__(self):
         super(Lockin, self).__init__()
+        self._instLock = QtCore.QMutex()
         self._inst = None
         self._sigRequestQuit.connect(self.quit)
         self._sigAdjustAndGetOutputs.connect(self._adjustAndGetOutputs)
@@ -53,6 +57,48 @@ class Lockin(QtCore.QObject):
         self.moveToThread(self.thread)
         self.thread.started.connect(self._started)
         self.thread.start()
+
+    def getTimeConstantOptions(self):
+        return self._inst.time_constant_labels
+
+    @QtCore.Slot()
+    def getTimeConstantIndex(self):
+        '''
+        Blocking
+
+        Emits
+        -----
+        sigTimeConstantIndex
+        '''
+        with QtCore.QMutexLocker(self._instLock):
+            i = self._inst.get_time_constant_index()
+        self.sigTimeConstantIndex.emit(i)
+        return i
+
+    def requestTimeConstantIndex(self):
+        '''
+        Non-blocking
+
+        Emits
+        -----
+        sigTimeConstantIndex
+        '''
+        QtCore.QTimer.singleShot(0, self.getTimeConstantIndex)
+
+    @QtCore.Slot(int)
+    def setTimeConstantIndex(self, i):
+        with QtCore.QMutexLocker(self._instLock):
+            self._inst.set_time_constant_index(i)
+
+    @QtCore.Slot(int)
+    def setReserveModeIndex(self, i):
+        with QtCore.QMutexLocker(self._instLock):
+            self._inst.set_reserve_mode(i)
+
+    @QtCore.Slot(int)
+    def setInputLineFilterIndex(self, i):
+        with QtCore.QMutexLocker(self._instLock):
+            self._inst.set_input_line_filter(i)
 
     @QtCore.Slot()
     def quit(self):
@@ -80,7 +126,8 @@ class Lockin(QtCore.QObject):
 
     @QtCore.Slot(float)
     def _adjustAndGetOutputs(self, delay):
-        raw_signal, phase = self._inst.adjust_and_get_outputs(delay)
+        with QtCore.QMutexLocker(self._instLock):
+            raw_signal, phase = self._inst.adjust_and_get_outputs(delay)
         self.sigRawSignal.emit(raw_signal)
         self.sigPhase.emit(phase)
         self.sigAdjustAndGetOutputsFinished.emit(raw_signal, phase)
