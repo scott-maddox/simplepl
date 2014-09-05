@@ -331,6 +331,7 @@ class SR830(object):
             i=3 : both notch filters
         '''
         return int(self._ask('ILIN?'))
+
     def set_input_line_filter(self, i):
         '''
         Sets the input line notch filter status.
