@@ -37,7 +37,7 @@ pg.setConfigOptions(antialias=True)
 
 
 class SpectraPlotItem(PlotItem):
-    # TODO: allow adding and removing spectrum
+
     def __init__(self, parent=None, name=None, labels=None,
                  title=None, viewBox=None, axisItems=None, enableMenu=True,
                  *spectra, **kwargs):

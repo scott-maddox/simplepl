@@ -150,7 +150,7 @@ class SimplePLParser(object):
             wavelength = float(values[0])
             raw = float(values[2])
             self.wavelength.append(wavelength)
-            # TODO: update MeasuredSpectrum to have optional raw and phase
+
             if self.sysresFilepath is not None:
                 sysres = self.get_sysres(wavelength)
                 sysresrem = raw / sysres

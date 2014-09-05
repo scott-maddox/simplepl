@@ -194,7 +194,6 @@ class Spectrometer(QtCore.QThread):
         self._sigGetWavelength.emit()
 
     def _getTargetGrating(self, wavelength):
-        # TODO: store these values in the settings
         if wavelength < 800.:
             raise ValueError('wavelengths below 800 nm are not supported')
         elif wavelength <= 1592.:
@@ -206,7 +205,6 @@ class Spectrometer(QtCore.QThread):
         raise ValueError('wavelengths above 5500 nm are not supported')
 
     def _getTargetFilter(self, wavelength):
-        # TODO: store these values in the settings
         if wavelength < 800.:
             raise ValueError('wavelengths below 800 nm are not supported')
         elif wavelength <= 1592.:

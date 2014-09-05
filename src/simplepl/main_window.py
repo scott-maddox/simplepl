@@ -282,7 +282,7 @@ class MainWindow(QtGui.QMainWindow):
             return
 
         self.disableActions()
-        # TODO: keep the last spectrum for comparison?
+
         if self.spectrum:
             self.plot.removeSpectrum(self.spectrum)
         self.spectrum = ExpandingSpectrum(self._sysresParser)
@@ -330,7 +330,6 @@ class MainWindow(QtGui.QMainWindow):
                 return
             spectrum = openMeasuredSpectrum(filepath, sysres_filepath)
 
-        # TODO: allow more than one measured spectrum
         # remove the previous measured spectrum
         if self.spectrum:
             self.plot.removeSpectrum(self.spectrum)
@@ -399,7 +398,6 @@ class MainWindow(QtGui.QMainWindow):
                 QtGui.QMessageBox.No)
 
         if reply == QtGui.QMessageBox.Yes:
-            # TODO: do something if data is unsaved?
             self.abortScan()
             self.spectrometer.requestQuit()
             self.lockin.requestQuit()

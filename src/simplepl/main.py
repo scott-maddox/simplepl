@@ -32,7 +32,6 @@ from main_window import MainWindow
 
 def run(debug, simulate):
     app = QtGui.QApplication([])
-    #TODO: remember last open/save directory
 
     # Set up QSettings
     app.setOrganizationName("Scott J Maddox")
