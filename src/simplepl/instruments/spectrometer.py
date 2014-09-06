@@ -205,26 +205,66 @@ class Spectrometer(QtCore.QObject):
         self._sigGetWavelength.emit()
 
     def _getTargetGrating(self, wavelength):
-        if wavelength < 800.:
-            raise ValueError('wavelengths below 800 nm are not supported')
-        elif wavelength <= 1592.:
-            return 2  # 1.2 um blaze
-        elif wavelength <= 2353.:
-            return 3  # 2 um blaze
-        elif wavelength <= 5500.:
+        wlmin = float(self._settings.value(
+                                    'spectrometer/grating/1/wavelength/min',
+                                     2353.))
+        wlmax = float(self._settings.value(
+                                    'spectrometer/grating/1/wavelength/max',
+                                     5500.01))
+        if wavelength >= wlmin and wavelength < wlmax:
             return 1  # 4 um blaze
-        raise ValueError('wavelengths above 5500 nm are not supported')
+
+        wlmin = float(self._settings.value(
+                                    'spectrometer/grating/2/wavelength/min',
+                                     800.))
+        wlmax = float(self._settings.value(
+                                    'spectrometer/grating/2/wavelength/max',
+                                     1592.))
+        if wavelength >= wlmin and wavelength < wlmax:
+            return 2  # 1.2 um blaze
+
+        wlmin = float(self._settings.value(
+                                    'spectrometer/grating/3/wavelength/min',
+                                     1592.))
+        wlmax = float(self._settings.value(
+                                    'spectrometer/grating/3/wavelength/max',
+                                     2353.))
+        if wavelength >= wlmin and wavelength < wlmax:
+            return 3  # 2 um blaze
+
+        raise ValueError('wavelength not supported: {}'
+                         ''.format(wavelength))
 
     def _getTargetFilter(self, wavelength):
-        if wavelength < 800.:
-            raise ValueError('wavelengths below 800 nm are not supported')
-        elif wavelength <= 1592.:
-            return 1  # 800-1500 nm
-        elif wavelength <= 2621.:
-            return 2  # 1500-3000 nm
-        elif wavelength <= 5500.:
-            return 3  # 2500-7000 nm
-        raise ValueError('wavelengths above 5500 nm are not supported')
+        wlmin = float(self._settings.value(
+                                    'spectrometer/filter/1/wavelength/min',
+                                     800))
+        wlmax = float(self._settings.value(
+                                    'spectrometer/filter/1/wavelength/max',
+                                     1592.))
+        if wavelength >= wlmin and wavelength < wlmax:
+            return 1  # 4 um blaze
+
+        wlmin = float(self._settings.value(
+                                    'spectrometer/filter/2/wavelength/min',
+                                     1592.))
+        wlmax = float(self._settings.value(
+                                    'spectrometer/filter/2/wavelength/max',
+                                     2621.))
+        if wavelength >= wlmin and wavelength < wlmax:
+            return 2  # 1.2 um blaze
+
+        wlmin = float(self._settings.value(
+                                    'spectrometer/filter/3/wavelength/min',
+                                     2621.))
+        wlmax = float(self._settings.value(
+                                    'spectrometer/filter/3/wavelength/max',
+                                     5500.01))
+        if wavelength >= wlmin and wavelength < wlmax:
+            return 3  # 2 um blaze
+
+        raise ValueError('wavelength not supported: {}'
+                         ''.format(wavelength))
 
     @QtCore.Slot(float)
     def _setWavelength(self, wavelength):

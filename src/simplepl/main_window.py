@@ -245,8 +245,10 @@ class MainWindow(QtGui.QMainWindow):
         self.moveTopLeft()
 
     def setWavelength(self):
-        wavelengthMin = float(self._settings.value('wavelength/min', 800.))
-        wavelengthMax = float(self._settings.value('wavelength/max', 5500.))
+        wavelengthMin = float(self._settings.value(
+                                        'spectrometer/wavelength/min', 800.))
+        wavelengthMax = float(self._settings.value(
+                                        'spectrometer/wavelength/max', 5500.))
         wavelength = self._wavelength or wavelengthMin
         wavelengthPrecision = float(self._settings.value(
                                              'wavelength/precision', 0.1))
