@@ -35,7 +35,6 @@ class Lockin(QtCore.QObject):
     thread. The results are emitted in other Signals, which are specified
     in the doc strings.
     '''
-    _sigRequestQuit = QtCore.Signal()
     _sigAdjustAndGetOutputs = QtCore.Signal(float)
 
     sigRawSignal = QtCore.Signal(float)
@@ -49,7 +48,6 @@ class Lockin(QtCore.QObject):
         super(Lockin, self).__init__()
         self._instLock = QtCore.QMutex()
         self._inst = None
-        self._sigRequestQuit.connect(self.quit)
         self._sigAdjustAndGetOutputs.connect(self._adjustAndGetOutputs)
 
         # Start the thread
@@ -100,20 +98,6 @@ class Lockin(QtCore.QObject):
         with QtCore.QMutexLocker(self._instLock):
             self._inst.set_input_line_filter(i)
 
-    @QtCore.Slot()
-    def quit(self):
-        self.thread.quit()
-
-    def requestQuit(self):
-        '''
-        Sends a request to the spectrometer thread to quit.
-
-        In order to give it time to quit on close, use the following:
-            spectrometer.requestQuit()
-            spectrometer.wait()
-        '''
-        self._sigRequestQuit.emit()
-
     def _started(self):
         settings = QtCore.QSettings()
         simulate = settings.value('simulate', False)
@@ -122,7 +106,14 @@ class Lockin(QtCore.QObject):
             from drivers.srs_sr830_sim import SR830
         else:
             from drivers.srs_sr830 import SR830
-        self._inst = SR830()
+
+        lockinPort = settings.value('lockin/port', 'GPIB::8')
+        with QtCore.QMutexLocker(self._instLock):
+            try:
+                self._inst = SR830(port=lockinPort)
+            except:
+                raise IOError('unable to connect to lock-in at port {}'
+                              ''.format(lockinPort))
 
     @QtCore.Slot(float)
     def _adjustAndGetOutputs(self, delay):

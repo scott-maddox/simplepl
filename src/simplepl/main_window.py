@@ -39,6 +39,7 @@ from .dialogs.lockin_config_dialog import LockinConfigDialog
 from .dialogs.gratings_and_filters_config_dialog import (
                                             GratingsAndFiltersConfigDialog)
 from .dialogs.set_wavelength_dialog import SetWavelengthDialog
+from .dialogs.ports_config_dialog import PortsConfigDialog
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -193,6 +194,11 @@ class MainWindow(QtGui.QMainWindow):
         self.abortScanAction.triggered.connect(self.abortScan)
         self.abortScanAction.setEnabled(False)
 
+        self.configPortsAction = QtGui.QAction('&Ports', self)
+        self.configPortsAction.setStatusTip('Configure the instrument ports')
+        self.configPortsAction.setToolTip('Configure the instrument ports')
+        self.configPortsAction.triggered.connect(self.configPorts)
+
         self.configLockinAction = QtGui.QAction('&Lock-in', self)
         self.configLockinAction.setStatusTip(
                                             'Configure the lock-in amplifier')
@@ -228,6 +234,7 @@ class MainWindow(QtGui.QMainWindow):
         scanMenu.addAction(self.startScanAction)
         scanMenu.addAction(self.abortScanAction)
         configMenu = menubar.addMenu('&Config')
+        configMenu.addAction(self.configPortsAction)
         configMenu.addAction(self.configLockinAction)
         configMenu.addAction(self.configDivertersAction)
         configMenu.addAction(self.configGratingsAndFiltersAction)
@@ -276,8 +283,10 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(True)
         self.startScanAction.setEnabled(True)
         self.abortScanAction.setEnabled(False)
-        self.configDivertersAction.setEnabled(True)
+        self.configPortsAction.setEnabled(True)
         self.configLockinAction.setEnabled(True)
+        self.configDivertersAction.setEnabled(True)
+        self.configGratingsAndFiltersAction.setEnabled(True)
 
     def disableActions(self):
         self.aboutAction.setEnabled(False)
@@ -286,8 +295,10 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(False)
         self.startScanAction.setEnabled(False)
         self.abortScanAction.setEnabled(True)
-        self.configDivertersAction.setEnabled(False)
+        self.configPortsAction.setEnabled(False)
         self.configLockinAction.setEnabled(False)
+        self.configDivertersAction.setEnabled(False)
+        self.configGratingsAndFiltersAction.setEnabled(False)
 
     @QtCore.Slot(float)
     def _scanPart1(self, wavelength):
@@ -365,6 +376,22 @@ class MainWindow(QtGui.QMainWindow):
 
         self.spectrometer.setEntranceMirror(entranceMirror)
         self.spectrometer.setExitMirror(exitMirror)
+
+    def configPorts(self):
+        # Get the ports
+        ports = PortsConfigDialog.getPortsConfig(parent=self)
+        if ports is None:
+            return
+
+        # Restart the lockin and spectrometer
+        self.lockin.thread.quit()
+        self.spectrometer.thread.quit()
+
+        self.lockin.thread.wait()
+        self.spectrometer.thread.wait()
+
+        self.spectrometer = Spectrometer()
+        self.lockin = Lockin()
 
     def configLockin(self):
         # Get the config parameters

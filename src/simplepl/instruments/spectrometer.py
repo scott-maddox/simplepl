@@ -35,7 +35,6 @@ class Spectrometer(QtCore.QObject):
     thread. The results are emitted in other Signals, which are specified
     in the doc strings.
     '''
-    _sigRequestQuit = QtCore.Signal()
     _sigGetGrating = QtCore.Signal()
     _sigSetGrating = QtCore.Signal(int)
     _sigGetFilter = QtCore.Signal()
@@ -64,7 +63,6 @@ class Spectrometer(QtCore.QObject):
         self._filter = None
 
         # Connect signals/slots for asynchronous methods
-        self._sigRequestQuit.connect(self.quit)
         self._sigGetGrating.connect(self._getGrating)
         self._sigSetGrating.connect(self._setGrating)
         self._sigGetFilter.connect(self._getFilter)
@@ -94,27 +92,22 @@ class Spectrometer(QtCore.QObject):
             from drivers.thorlabs_fw102c import FW102C
 
         # Initialize the spectrometer
+        spectrometerPort = int(self._settings.value('spectrometer/port', 3))
         with QtCore.QMutexLocker(self._spectrometerLock):
-            self._spectrometer = SpectraPro2500i()
+            try:
+                self._spectrometer = SpectraPro2500i(port=spectrometerPort)
+            except:
+                raise IOError('unable to connect to spectrometer at port {}'
+                              ''.format(spectrometerPort))
 
         # Initialize the filter wheel
         filterWheelPort = int(self._settings.value('filterWheel/port', 3))
         with QtCore.QMutexLocker(self._filterWheelLock):
-            self._filterWheel = FW102C(port=filterWheelPort)
-
-    @QtCore.Slot()
-    def quit(self):
-        self.thread.quit()
-
-    def requestQuit(self):
-        '''
-        Sends a request to the spectrometer thread to quit.
-
-        In order to give it time to quit on close, use the following:
-            spectrometer.requestQuit()
-            spectrometer.wait()
-        '''
-        self._sigRequestQuit.emit()
+            try:
+                self._filterWheel = FW102C(port=filterWheelPort)
+            except:
+                raise IOError('unable to connect to spectrometer at port {}'
+                              ''.format(filterWheelPort))
 
     def getGratingCount(self):
         return 9
