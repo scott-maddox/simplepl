@@ -19,47 +19,36 @@
 #
 #######################################################################
 
-# std lib imports
-from math import floor, log10
-
 # third party imports
 from PySide import QtGui, QtCore
 
+# local imports
+from ..wavelength_spin_box import WavelengthSpinBox
+
 
 class StartScanDialog(QtGui.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, spectrometer, parent=None):
         super(StartScanDialog, self).__init__(parent)
         self.setModal(True)
 
+        minWavelength = spectrometer.getMinWavelength()
+        maxWavelength = spectrometer.getMaxWavelength()
+
         settings = QtCore.QSettings()
-        wlmin = float(settings.value('wavelength/min', 800.))
-        wlmax = float(settings.value('wavelength/max', 5500.))
-        precision = float(settings.value('wavelength/precision', 0.1))
-        decimals = floor(-log10(precision))
-        if decimals < 0:
-            decimals = 0
-        start = float(settings.value('scan/start', wlmin))
-        stop = float(settings.value('scan/stop', wlmax))
+        start = float(settings.value('scan/start', minWavelength))
+        stop = float(settings.value('scan/stop', maxWavelength))
         step = float(settings.value('scan/step', 10.))
         delay = float(settings.value('scan/delay', 1.5))
 
-        self.startSpinBox = QtGui.QDoubleSpinBox()
-        self.startSpinBox.setDecimals(decimals)
-        self.startSpinBox.setRange(wlmin, wlmax)
-        self.startSpinBox.setSingleStep(precision)
-        self.startSpinBox.setValue(start)
+        self.startSpinBox = WavelengthSpinBox(value=start)
+        self.startSpinBox.setRange(minWavelength, maxWavelength)
+        self.stopSpinBox = WavelengthSpinBox(value=stop)
+        self.stopSpinBox.setRange(minWavelength, maxWavelength)
+        self.startSpinBox.selectAll()
 
-        self.stopSpinBox = QtGui.QDoubleSpinBox()
-        self.stopSpinBox.setDecimals(decimals)
-        self.stopSpinBox.setRange(wlmin, wlmax)
-        self.stopSpinBox.setSingleStep(precision)
-        self.stopSpinBox.setValue(stop)
-
-        self.stepSpinBox = QtGui.QDoubleSpinBox()
-        self.stepSpinBox.setDecimals(decimals)
-        self.stepSpinBox.setRange(precision, 1000.)
-        self.stepSpinBox.setSingleStep(precision)
-        self.stepSpinBox.setValue(step)
+        self.stepSpinBox = WavelengthSpinBox(value=step)
+        self.stepSpinBox.setRange(self.stepSpinBox.getPrecision(),
+                                  self.stepSpinBox.getMaxWavelength())
 
         self.delaySpinBox = QtGui.QDoubleSpinBox()
         self.delaySpinBox.setDecimals(1)
@@ -69,9 +58,15 @@ class StartScanDialog(QtGui.QDialog):
 
         layout = QtGui.QVBoxLayout(self)
         form = QtGui.QFormLayout()
-        form.addRow('Wavelength Start (nm)', self.startSpinBox)
-        form.addRow('Wavelength Stop (nm)', self.stopSpinBox)
-        form.addRow('Wavelength Step (nm)', self.stepSpinBox)
+        form.addRow('Wavelength Start ({})'
+                    ''.format(self.startSpinBox.getUnits()),
+                    self.startSpinBox)
+        form.addRow('Wavelength Stop ({})'
+                    ''.format(self.stopSpinBox.getUnits()),
+                    self.stopSpinBox)
+        form.addRow('Wavelength Step ({})'
+                    ''.format(self.stepSpinBox.getUnits()),
+                    self.stepSpinBox)
         form.addRow('Delay (s)', self.delaySpinBox)
         layout.addLayout(form)
 
@@ -85,21 +80,25 @@ class StartScanDialog(QtGui.QDialog):
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
-    @staticmethod
-    def getScanParameters(parent=None):
+    @classmethod
+    def getScanParameters(cls, spectrometer, parent=None):
         '''
-        Returns (start, stop, step, delay, accepted), and changes the
-        corresponding values in the settings.
+        Returns (start, stop, step, delay) and changes the corresponding
+        values in the settings if accepted, or None if not.
         '''
-        dialog = StartScanDialog(parent)
+        dialog = cls(spectrometer=spectrometer, parent=parent)
         result = dialog.exec_()
         accepted = (result == QtGui.QDialog.Accepted)
+
+        if not accepted:
+            return
 
         start = dialog.startSpinBox.value()
         stop = dialog.stopSpinBox.value()
         step = dialog.stepSpinBox.value()
         delay = dialog.delaySpinBox.value()
 
+        # Remember the current values
         settings = QtCore.QSettings()
         settings.setValue('scan/start', start)
         settings.setValue('scan/stop', stop)
@@ -107,4 +106,4 @@ class StartScanDialog(QtGui.QDialog):
         settings.setValue('scan/delay', delay)
         settings.sync()
 
-        return start, stop, step, delay, accepted
+        return start, stop, step, delay

@@ -33,9 +33,12 @@ from .measured_spectrum import openMeasuredSpectrum
 from .expanding_spectrum import ExpandingSpectrum
 from .instruments.spectrometer import Spectrometer
 from .instruments.lockin import Lockin
-from .start_scan_dialog import StartScanDialog
-from .spectrometer_config_dialog import SpectrometerConfigDialog
-from .lockin_config_dialog import LockinConfigDialog
+from .dialogs.start_scan_dialog import StartScanDialog
+from .dialogs.diverters_config_dialog import DivertersConfigDialog
+from .dialogs.lockin_config_dialog import LockinConfigDialog
+from .dialogs.gratings_and_filters_config_dialog import (
+                                            GratingsAndFiltersConfigDialog)
+from .dialogs.set_wavelength_dialog import SetWavelengthDialog
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -190,20 +193,30 @@ class MainWindow(QtGui.QMainWindow):
         self.abortScanAction.triggered.connect(self.abortScan)
         self.abortScanAction.setEnabled(False)
 
-        self.configSpectrometerAction = QtGui.QAction('&Spectrometer', self)
-        self.configSpectrometerAction.setStatusTip(
-                                                'Configure the spectrometer')
-        self.configSpectrometerAction.setToolTip('Configure the spectrometer')
-        self.configSpectrometerAction.triggered.connect(
-                                                    self.configSpectrometer)
-
-        self.configLockinAction = QtGui.QAction('&Lockin', self)
+        self.configLockinAction = QtGui.QAction('&Lock-in', self)
         self.configLockinAction.setStatusTip(
                                             'Configure the lock-in amplifier')
         self.configLockinAction.setToolTip(
                                             'Configure the lock-in amplifier')
         self.configLockinAction.triggered.connect(
                                                     self.configLockin)
+
+        self.configDivertersAction = QtGui.QAction('&Diverters', self)
+        self.configDivertersAction.setStatusTip(
+                                                'Configure the diverters')
+        self.configDivertersAction.setToolTip('Configure the diverters')
+        self.configDivertersAction.triggered.connect(
+                                                    self.configDiverters)
+
+        self.configGratingsAndFiltersAction = QtGui.QAction(
+                                                    '&Gratings and Filters',
+                                                    self)
+        self.configGratingsAndFiltersAction.setStatusTip(
+                                        'Configure the gratings and filters')
+        self.configGratingsAndFiltersAction.setToolTip(
+                                        'Configure the gratings and filters')
+        self.configGratingsAndFiltersAction.triggered.connect(
+                                        self.configGratingsAndFilters)
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
@@ -215,8 +228,9 @@ class MainWindow(QtGui.QMainWindow):
         scanMenu.addAction(self.startScanAction)
         scanMenu.addAction(self.abortScanAction)
         configMenu = menubar.addMenu('&Config')
-        configMenu.addAction(self.configSpectrometerAction)
         configMenu.addAction(self.configLockinAction)
+        configMenu.addAction(self.configDivertersAction)
+        configMenu.addAction(self.configGratingsAndFiltersAction)
         aboutMenu = menubar.addMenu('&About')
         aboutMenu.addAction(self.aboutAction)
 
@@ -241,26 +255,18 @@ class MainWindow(QtGui.QMainWindow):
         self.setCentralWidget(view)
 
         self.setWindowTitle('SimplePL')
-        self.resize(1280, 800)
-        self.moveTopLeft()
+        self.setMinimumSize(576, 432)
+        self.readWindowSettings()
 
     def setWavelength(self):
-        wavelengthMin = float(self._settings.value('wavelength/min', 800.))
-        wavelengthMax = float(self._settings.value('wavelength/max', 5500.))
-        wavelength = self._wavelength or wavelengthMin
-        wavelengthPrecision = float(self._settings.value(
-                                             'wavelength/precision', 0.1))
-        target, accepted = QtGui.QInputDialog().getDouble(self,
-                                            'Go to a wavelength',
-                                            'Target wavelength (wavelength):',
-                                            wavelength,
-                                            wavelengthMin,
-                                            wavelengthMax,
-                                            wavelengthPrecision)
-        if not accepted:
+        wavelength = SetWavelengthDialog.getWavelength(
+                                        spectrometer=self.spectrometer,
+                                        wavelength=self._wavelength,
+                                        parent=self)
+        if wavelength is None:
             return
-        self._wavelengthTarget = target
-        self.wavelengthLabel.setText('Wavelength=?')
+        self._wavelengthTarget = wavelength
+        self.updateWavelength(None)
         self.spectrometer.setWavelength(self._wavelengthTarget)
 
     def enableActions(self):
@@ -270,7 +276,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(True)
         self.startScanAction.setEnabled(True)
         self.abortScanAction.setEnabled(False)
-        self.configSpectrometerAction.setEnabled(True)
+        self.configDivertersAction.setEnabled(True)
         self.configLockinAction.setEnabled(True)
 
     def disableActions(self):
@@ -280,7 +286,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(False)
         self.startScanAction.setEnabled(False)
         self.abortScanAction.setEnabled(True)
-        self.configSpectrometerAction.setEnabled(False)
+        self.configDivertersAction.setEnabled(False)
         self.configLockinAction.setEnabled(False)
 
     @QtCore.Slot(float)
@@ -314,14 +320,17 @@ class MainWindow(QtGui.QMainWindow):
         self._scanSaved = False
 
         # Apply the spectrometer and lockin config's
-        self.applySpectrometerConfig()
+        self.applyDivertersConfig()
         self.applyLockinConfig()
 
         # Get the scan parameters
-        start, _stop, _step, _delay, accepted = (
-                            StartScanDialog.getScanParameters(parent=self))
-        if not accepted:
+        params = StartScanDialog.getScanParameters(
+                                        spectrometer=self.spectrometer,
+                                        parent=self)
+        if params is None:
             return
+
+        start, _stop, _step, _delay = params
 
         self.disableActions()
 
@@ -329,10 +338,8 @@ class MainWindow(QtGui.QMainWindow):
             self.plot.removeSpectrum(self.spectrum)
         self.spectrum = ExpandingSpectrum(self._sysresParser)
         self.plot.addSpectrum(self.spectrum)
-        self.spectrometer.sigWavelength.connect(
-                                            self._scanPart1)
-        self.lockin.sigAdjustAndGetOutputsFinished.connect(
-                                            self._scanPart2)
+        self.spectrometer.sigWavelength.connect(self._scanPart1)
+        self.lockin.sigAdjustAndGetOutputsFinished.connect(self._scanPart2)
         self._isScanning = True
 
         self._wavelengthTarget = start
@@ -349,10 +356,10 @@ class MainWindow(QtGui.QMainWindow):
                                             self._scanPart2)
         self.enableActions()
 
-    def configSpectrometer(self):
+    def configDiverters(self):
         # Get the config parameters
         entranceMirror, exitMirror, accepted = (
-                SpectrometerConfigDialog.getSpectrometerConfig(parent=self))
+                DivertersConfigDialog.getDivertersConfig(parent=self))
         if not accepted:
             return
 
@@ -369,7 +376,10 @@ class MainWindow(QtGui.QMainWindow):
         self.lockin.setReserveModeIndex(reserveModeIndex)
         self.lockin.setInputLineFilterIndex(inputLineFilterIndex)
 
-    def applySpectrometerConfig(self):
+    def configGratingsAndFilters(self):
+        GratingsAndFiltersConfigDialog.getAdvancedConfig(self.spectrometer, parent=self)
+
+    def applyDivertersConfig(self):
         settings = QtCore.QSettings()
         entranceMirror = settings.value('spectrometer/entrance_mirror',
                                         'Front')
@@ -501,6 +511,20 @@ class MainWindow(QtGui.QMainWindow):
             self.lockin.requestQuit()
             self.spectrometer.thread.wait()
             self.lockin.thread.wait()
+            self.writeWindowSettings()
             event.accept()
         else:
             event.ignore()
+
+    def writeWindowSettings(self):
+        self._settings.setValue("MainWindow/size", self.size())
+        self._settings.setValue("MainWindow/pos", self.pos())
+
+    def readWindowSettings(self):
+        self.resize(self._settings.value("MainWindow/size",
+                                         QtCore.QSize(1280, 800)))
+        pos = self._settings.value("MainWindow/pos")
+        if pos is None:
+            self.moveCenter()  # default to centered
+        else:
+            self.move(pos)

@@ -29,16 +29,13 @@ from PySide import QtGui, QtCore
 from single_process import single_process
 # local imports
 if __name__ == '__main__':
-    # Make sure we're importing the local semicontrol package
+    # Make sure we're importing the local simplepl package
     import os
     sys.path.insert(0,
         os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     import simplepl
-    assert (simplepl.__file__ ==
-            os.path.join(os.path.dirname(__file__), '__init__.pyc'))
-
+    assert os.path.dirname(simplepl.__file__) == os.path.dirname(__file__)
 from simplepl.main_window import MainWindow
-
 
 
 @single_process
