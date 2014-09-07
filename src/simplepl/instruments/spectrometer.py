@@ -116,6 +116,12 @@ class Spectrometer(QtCore.QObject):
         '''
         self._sigRequestQuit.emit()
 
+    def getGratingCount(self):
+        return 9
+
+    def getFilterCount(self):
+        return 6
+
     @QtCore.Slot()
     def _getGrating(self):
         with QtCore.QMutexLocker(self._spectrometerLock):
@@ -204,81 +210,31 @@ class Spectrometer(QtCore.QObject):
         '''
         self._sigGetWavelength.emit()
 
-    def _getTargetGrating(self, wavelength):
-        wlmin = float(self._settings.value(
-                                    'spectrometer/grating/1/wavelength/min',
-                                     2353.))
-        wlmax = float(self._settings.value(
-                                    'spectrometer/grating/1/wavelength/max',
-                                     5500.01))
-        if wavelength >= wlmin and wavelength < wlmax:
-            return 1  # 4 um blaze
-
-        wlmin = float(self._settings.value(
-                                    'spectrometer/grating/2/wavelength/min',
-                                     800.))
-        wlmax = float(self._settings.value(
-                                    'spectrometer/grating/2/wavelength/max',
-                                     1592.))
-        if wavelength >= wlmin and wavelength < wlmax:
-            return 2  # 1.2 um blaze
-
-        wlmin = float(self._settings.value(
-                                    'spectrometer/grating/3/wavelength/min',
-                                     1592.))
-        wlmax = float(self._settings.value(
-                                    'spectrometer/grating/3/wavelength/max',
-                                     2353.))
-        if wavelength >= wlmin and wavelength < wlmax:
-            return 3  # 2 um blaze
-
-        raise ValueError('wavelength not supported: {}'
-                         ''.format(wavelength))
-
-    def _getTargetFilter(self, wavelength):
-        wlmin = float(self._settings.value(
-                                    'spectrometer/filter/1/wavelength/min',
-                                     800))
-        wlmax = float(self._settings.value(
-                                    'spectrometer/filter/1/wavelength/max',
-                                     1592.))
-        if wavelength >= wlmin and wavelength < wlmax:
-            return 1  # 4 um blaze
-
-        wlmin = float(self._settings.value(
-                                    'spectrometer/filter/2/wavelength/min',
-                                     1592.))
-        wlmax = float(self._settings.value(
-                                    'spectrometer/filter/2/wavelength/max',
-                                     2621.))
-        if wavelength >= wlmin and wavelength < wlmax:
-            return 2  # 1.2 um blaze
-
-        wlmin = float(self._settings.value(
-                                    'spectrometer/filter/3/wavelength/min',
-                                     2621.))
-        wlmax = float(self._settings.value(
-                                    'spectrometer/filter/3/wavelength/max',
-                                     5500.01))
-        if wavelength >= wlmin and wavelength < wlmax:
-            return 3  # 2 um blaze
-
-        raise ValueError('wavelength not supported: {}'
-                         ''.format(wavelength))
+    def _getTargetGratingAndFilter(self, wavelength):
+        wavelengths, gratings, filters = self.getConfigs()
+        if wavelength < wavelengths[0]:
+            raise ValueError('wavelengths shorter than {} are not supported'
+                             ''.format(wavelengths[0]))
+        for i in xrange(len(gratings)):
+            if wavelength <= wavelengths[i + 1]:
+                return gratings[i], filters[i]
+        else:
+            raise ValueError('wavelengths longer than {} are not supported'
+                             ''.format(wavelengths[i + 1]))
 
     @QtCore.Slot(float)
     def _setWavelength(self, wavelength):
-        # Change the grating, if needed
+        # Change the grating and/or filter, if needed
+        targetGrating, targetFilter = self._getTargetGratingAndFilter(
+                                                                wavelength)
+
         if self._grating is None:
             self._getGrating()
-        targetGrating = self._getTargetGrating(wavelength)
         if self._grating != targetGrating:
             self.setGrating(targetGrating)
 
-        # Change the filter, if needed
         if self._filter is None:
             self._getFilter()
-        targetFilter = self._getTargetFilter(wavelength)
         if self._filter != targetFilter:
             self.setFilter(targetFilter)
 
@@ -286,6 +242,64 @@ class Spectrometer(QtCore.QObject):
         with QtCore.QMutexLocker(self._spectrometerLock):
             self._spectrometer.goto(wavelength)
         self._getWavelength()  # read and emit the resulting wavelength
+
+    def getConfigs(self):
+        '''
+        Returns
+        -------
+        wavelengths : list of floats of length N
+        gratings : list of ints of length (N - 1)
+        filters : list of ints of length (N - 1)
+        '''
+        wavelengths = []
+        gratings = []
+        filters = []
+        size = self._settings.beginReadArray('spectrometer/configs')
+        for i in xrange(size - 1):
+            self._settings.setArrayIndex(i)
+            wavelengths.append(float(self._settings.value('wavelength')))
+            gratings.append(self._settings.value('grating'))
+            filters.append(self._settings.value('filter'))
+        self._settings.setArrayIndex(size - 1)
+        wavelengths.append(self._settings.value('wavelength'))
+        self._settings.endArray()
+        return wavelengths, gratings, filters
+
+    def setConfigs(self, wavelengths, gratings, filters):
+        '''
+        Parameters
+        ----------
+        wavelengths : list of floats of length N
+        gratings : list of ints of length (N - 1)
+        filters : list of ints of length (N - 1)
+        '''
+        assert wavelengths == sorted(wavelengths)
+        size = len(wavelengths)
+        self._settings.beginWriteArray('spectrometer/configs', size=size)
+        for i in xrange(size - 1):
+            self._settings.setArrayIndex(i)
+            self._settings.setValue('wavelength', wavelengths[i])
+            self._settings.setValue('grating', gratings[i])
+            self._settings.setValue('filter', filters[i])
+        self._settings.setArrayIndex(size - 1)
+        self._settings.setValue('wavelength', wavelengths[size - 1])
+        self._settings.endArray()
+        self._settings.sync()
+        return wavelengths, gratings, filters
+
+    def getMinWavelength(self):
+        _size = self._settings.beginReadArray('spectrometer/configs')
+        self._settings.setArrayIndex(0)
+        wavelength = self._settings.value('wavelength', 0.)
+        self._settings.endArray()
+        return wavelength
+
+    def getMaxWavelength(self):
+        size = self._settings.beginReadArray('spectrometer/configs')
+        self._settings.setArrayIndex(size - 1)
+        wavelength = self._settings.value('wavelength', 10000.)
+        self._settings.endArray()
+        return wavelength
 
     def setWavelength(self, wavelength):
         '''

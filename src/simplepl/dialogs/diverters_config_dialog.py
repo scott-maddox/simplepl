@@ -23,9 +23,9 @@
 from PySide import QtGui, QtCore
 
 
-class SpectrometerConfigDialog(QtGui.QDialog):
+class DivertersConfigDialog(QtGui.QDialog):
     def __init__(self, parent=None):
-        super(SpectrometerConfigDialog, self).__init__(parent)
+        super(DivertersConfigDialog, self).__init__(parent)
         self.setModal(True)
 
         settings = QtCore.QSettings()
@@ -72,7 +72,7 @@ class SpectrometerConfigDialog(QtGui.QDialog):
         Returns (entranceMirror, exitMirror, accepted), and changes the
         corresponding values in the settings.
         '''
-        dialog = SpectrometerConfigDialog(parent)
+        dialog = DivertersConfigDialog(parent)
         result = dialog.exec_()
         accepted = (result == QtGui.QDialog.Accepted)
 
