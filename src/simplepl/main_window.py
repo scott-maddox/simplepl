@@ -193,13 +193,6 @@ class MainWindow(QtGui.QMainWindow):
         self.abortScanAction.triggered.connect(self.abortScan)
         self.abortScanAction.setEnabled(False)
 
-        self.configSpectrometerAction = QtGui.QAction('&Spectrometer', self)
-        self.configSpectrometerAction.setStatusTip(
-                                                'Configure the spectrometer')
-        self.configSpectrometerAction.setToolTip('Configure the spectrometer')
-        self.configSpectrometerAction.triggered.connect(
-                                                    self.configSpectrometer)
-
         self.configLockinAction = QtGui.QAction('&Lock-in', self)
         self.configLockinAction.setStatusTip(
                                             'Configure the lock-in amplifier')
@@ -207,6 +200,13 @@ class MainWindow(QtGui.QMainWindow):
                                             'Configure the lock-in amplifier')
         self.configLockinAction.triggered.connect(
                                                     self.configLockin)
+
+        self.configDivertersAction = QtGui.QAction('&Diverters', self)
+        self.configDivertersAction.setStatusTip(
+                                                'Configure the diverters')
+        self.configDivertersAction.setToolTip('Configure the diverters')
+        self.configDivertersAction.triggered.connect(
+                                                    self.configDiverters)
 
         self.configGratingsAndFiltersAction = QtGui.QAction(
                                                     '&Gratings and Filters',
@@ -228,8 +228,8 @@ class MainWindow(QtGui.QMainWindow):
         scanMenu.addAction(self.startScanAction)
         scanMenu.addAction(self.abortScanAction)
         configMenu = menubar.addMenu('&Config')
-        configMenu.addAction(self.configSpectrometerAction)
         configMenu.addAction(self.configLockinAction)
+        configMenu.addAction(self.configDivertersAction)
         configMenu.addAction(self.configGratingsAndFiltersAction)
         aboutMenu = menubar.addMenu('&About')
         aboutMenu.addAction(self.aboutAction)
@@ -276,7 +276,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(True)
         self.startScanAction.setEnabled(True)
         self.abortScanAction.setEnabled(False)
-        self.configSpectrometerAction.setEnabled(True)
+        self.configDivertersAction.setEnabled(True)
         self.configLockinAction.setEnabled(True)
 
     def disableActions(self):
@@ -286,7 +286,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(False)
         self.startScanAction.setEnabled(False)
         self.abortScanAction.setEnabled(True)
-        self.configSpectrometerAction.setEnabled(False)
+        self.configDivertersAction.setEnabled(False)
         self.configLockinAction.setEnabled(False)
 
     @QtCore.Slot(float)
@@ -320,7 +320,7 @@ class MainWindow(QtGui.QMainWindow):
         self._scanSaved = False
 
         # Apply the spectrometer and lockin config's
-        self.applySpectrometerConfig()
+        self.applyDivertersConfig()
         self.applyLockinConfig()
 
         # Get the scan parameters
@@ -356,10 +356,10 @@ class MainWindow(QtGui.QMainWindow):
                                             self._scanPart2)
         self.enableActions()
 
-    def configSpectrometer(self):
+    def configDiverters(self):
         # Get the config parameters
         entranceMirror, exitMirror, accepted = (
-                DivertersConfigDialog.getSpectrometerConfig(parent=self))
+                DivertersConfigDialog.getDivertersConfig(parent=self))
         if not accepted:
             return
 
@@ -379,7 +379,7 @@ class MainWindow(QtGui.QMainWindow):
     def configGratingsAndFilters(self):
         GratingsAndFiltersConfigDialog.getAdvancedConfig(self.spectrometer, parent=self)
 
-    def applySpectrometerConfig(self):
+    def applyDivertersConfig(self):
         settings = QtCore.QSettings()
         entranceMirror = settings.value('spectrometer/entrance_mirror',
                                         'Front')

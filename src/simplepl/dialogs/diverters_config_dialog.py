@@ -67,7 +67,7 @@ class DivertersConfigDialog(QtGui.QDialog):
         self.buttons.rejected.connect(self.reject)
 
     @staticmethod
-    def getSpectrometerConfig(parent=None):
+    def getDivertersConfig(parent=None):
         '''
         Returns (entranceMirror, exitMirror, accepted), and changes the
         corresponding values in the settings.
