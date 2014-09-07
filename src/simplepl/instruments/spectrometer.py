@@ -27,6 +27,28 @@ from PySide import QtCore
 # local imports
 
 
+class FilterChanger(QtCore.QObject):
+    def __init__(self, targetFilter, filterWheel, lock):
+        super(FilterChanger, self).__init__()
+        self._targetFilter = targetFilter
+        self._filterWheelLock = lock
+        self._filterWheel = filterWheel
+        self.thread = QtCore.QThread()
+        self.thread.started.connect(self._started)
+        self.moveToThread(self.thread)
+
+    def _started(self):
+        with QtCore.QMutexLocker(self._filterWheelLock):
+            self._filterWheel.set_filter(self._targetFilter)
+            self.result = self._filterWheel.get_filter()
+        self.thread.quit()
+
+    def start(self):
+        self.thread.start()
+
+    def wait(self):
+        self.thread.wait()
+
 class Spectrometer(QtCore.QObject):
     '''
     Provides an asynchronous interface to the spectrometer.
@@ -186,6 +208,18 @@ class Spectrometer(QtCore.QObject):
         '''
         self._sigSetFilter.emit(i)
 
+    @QtCore.Slot(int, int)
+    def _setGratingAndFilter(self, grating, filter):
+        filterChanger = FilterChanger(filter,
+                                      self._filterWheel,
+                                      self._filterWheelLock)
+        self.sigChangingFilter.emit()
+        filterChanger.start()
+        self._setGrating(grating)
+        filterChanger.wait()
+        self._filter = filterChanger.result
+        self.sigFilter.emit(filterChanger.result)
+
     @QtCore.Slot()
     def _getWavelength(self):
         with QtCore.QMutexLocker(self._spectrometerLock):
@@ -223,11 +257,12 @@ class Spectrometer(QtCore.QObject):
 
         if self._grating is None:
             self._getGrating()
-        if self._grating != targetGrating:
-            self.setGrating(targetGrating)
-
         if self._filter is None:
             self._getFilter()
+        if self._grating != targetGrating and self._filter != targetFilter:
+            self._setGratingAndFilter(targetGrating, targetFilter)
+        if self._grating != targetGrating:
+            self.setGrating(targetGrating)
         if self._filter != targetFilter:
             self.setFilter(targetFilter)
 

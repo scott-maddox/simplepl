@@ -534,8 +534,8 @@ class MainWindow(QtGui.QMainWindow):
             if not self._scanSaved:
                 self.abortScan()
                 self.savePrompt()  # Prompt the user to save the scan
-            self.spectrometer.requestQuit()
-            self.lockin.requestQuit()
+            self.spectrometer.thread.quit()
+            self.lockin.thread.quit()
             self.spectrometer.thread.wait()
             self.lockin.thread.wait()
             self.writeWindowSettings()
