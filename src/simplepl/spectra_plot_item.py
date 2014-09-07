@@ -42,20 +42,24 @@ class SpectraPlotItem(PlotItem):
                  title=None, viewBox=None, axisItems=None, enableMenu=True,
                  *spectra, **kwargs):
         '''
-        **Keyword arguments:**
-
-            ================ ================================================
-            xaxis            Can be 'wavelength' (default) or 'energy'
-            ================ ================================================
+        Keyword Arguments
+        -----------------
+        xaxis : str
+            can be 'wavelength' (default) or 'energy'
         '''
         super(SpectraPlotItem, self).__init__(parent=None, name=None,
             labels=None, title=None, viewBox=None, axisItems=None,
             enableMenu=True, **kwargs)
         self._spectra = []
-        self._lines = []
+        self._signalLines = []
+        self._rawSignalLines = []
+        self._PhaseLines = []
         self._xaxis = kwargs.get('xaxis', 'wavelength')
         for spectrum in spectra:
             self.addSpectrum(spectrum)
+
+        self._signalPen = pg.mkPen('b')
+        self._rawSignalPen = pg.mkPen('#5050B0', style=QtCore.Qt.DashLine)
 
     @QtCore.Slot(AbstractSpectrum)
     def removeSpectrum(self, spectrum):
@@ -63,38 +67,39 @@ class SpectraPlotItem(PlotItem):
             raise ValueError('spectrum not in plot')
         spectrum.sigChanged.disconnect(self.updateLines())
         i = self._spectra.index(spectrum)
-        self.removeItem(self._lines[i])
+        self.removeItem(self._signalLines[i])
         del self._spectra[i]
-        del self._lines[i]
+        del self._signalLines[i]
+
+    def getX(self, spectrum):
+        if self._xaxis == 'wavelength':
+            return spectrum.getWavelength()
+        elif self._xaxis == 'energy':
+            return spectrum.getEnergy()
+        else:
+            raise ValueError('Unsupported value for xaxis: {}'
+                             .format(self._xaxis))
 
     @QtCore.Slot(AbstractSpectrum)
     def addSpectrum(self, spectrum):
         if spectrum in self._spectra:
             raise ValueError('spectrum alread in plot')
-        if self._xaxis == 'wavelength':
-            x = spectrum.wavelength
-        elif self._xaxis == 'energy':
-            x = spectrum.energy
-        else:
-            raise ValueError('Unsupported value for xaxis: {}'
-                             .format(self._xaxis))
-        y = spectrum.intensity
-        line = self.plot(x=x, y=y)
-        self._lines.append(line)
+
+        signalLine = self.plot(x=self.getX(spectrum),
+                               y=spectrum.getSignal(),
+                               pen=self._signalPen)
+        rawSignalLine = self.plot(x=self.getX(spectrum),
+                                  y=spectrum.getRawSignal(),
+                                  pen=self._rawSignalPen)
+        self._signalLines.append(signalLine)
+        self._rawSignalLines.append(rawSignalLine)
         self._spectra.append(spectrum)
         spectrum.sigChanged.connect(self.updateLines)
 
     def updateLines(self):
-        for spectrum, line in zip(self._spectra, self._lines):
-            if self._xaxis == 'wavelength':
-                x = spectrum.wavelength
-            elif self._xaxis == 'energy':
-                x = spectrum.energy
-            else:
-                raise ValueError('Unsupported value for xaxis: {}'
-                                 .format(self._xaxis))
-            y = spectrum.intensity
-            line.setData(x=x, y=y)
-
-    def autofit(self):
-        raise NotImplementedError()
+        for spectrum, line in zip(self._spectra, self._signalLines):
+            line.setData(x=self.getX(spectrum),
+                         y=spectrum.getSignal())
+        for spectrum, line in zip(self._spectra, self._rawSignalLines):
+            line.setData(x=self.getX(spectrum),
+                         y=spectrum.getRawSignal())

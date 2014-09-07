@@ -32,19 +32,43 @@ from simple_pl_parser import SimplePLParser
 
 class MeasuredSpectrum(AbstractSpectrum):
 
-    def __init__(self, wavelength, intensity):
+    def __init__(self, wavelength, signal=None, rawSignal=None, phase=None):
         super(MeasuredSpectrum, self).__init__()
-        self.wavelength = wavelength
-        self.intensity = intensity
+        self._wavelength = wavelength
+        self._signal = signal
+        self._rawSignal = rawSignal
+        self._phase = phase
 
-    def _getEnergy(self):
-        '''Returns the energy array'''
-        return 1239.842 / self.wavelength
+    def getWavelength(self):
+        return self._wavelength
 
-    energy = QtCore.Property(np.ndarray, _getEnergy)
+    def getSignal(self):
+        return self._signal
 
+    def getRawSignal(self):
+        return self._rawSignal
 
-def openMeasuredSpectrum(filepath, sysres_filepath=None):
-    parser = SimplePLParser(filepath, sysres_filepath)
-    parser.parse()
-    return MeasuredSpectrum(parser.wavelength, parser.sysresrem)
+    def getPhase(self):
+        return self._phase
+
+    def getEnergy(self):
+        return 1239.842 / self.getWavelength()
+
+    @classmethod
+    def open(cls, filepath, sysres_filepath=None):
+        parser = SimplePLParser(filepath, sysres_filepath)
+        parser.parse()
+        return cls(parser.wavelength, parser.sysresrem)
+
+    def save(self, filepath):
+        wavelength = self.getWavelength()
+        signal = self.getSignal()
+        rawSignal = self.getRawSignal()
+        phase = self.getPhase()
+        with open(filepath, 'w') as f:
+            f.write('Wavelength\tSignal\tRaw_Signal\tPhase\n')
+            for i in xrange(wavelength.size):
+                f.write('%.1f\t%E\t%E\t%.1f\n' % (wavelength[i],
+                                                  signal[i],
+                                                  rawSignal[i],
+                                                  phase[i]))

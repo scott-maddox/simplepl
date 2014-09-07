@@ -59,12 +59,12 @@ class AbstractSimulatedSpectrum(AbstractSpectrum):
 
     wavelength = QtCore.Property(np.ndarray, _getWavelength, _setWavelength)
 
-    def _getIntensity(self):
+    def _getSignal(self):
         if self.energy is None:
             return None
         return self._calculateIntensity()
 
-    intensity = QtCore.Property(np.ndarray, _getIntensity)
+    intensity = QtCore.Property(np.ndarray, _getSignal)
 
     def _calculateIntensity(self):
         raise NotImplementedError()

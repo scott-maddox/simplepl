@@ -29,7 +29,6 @@ import pyqtgraph as pg
 # local imports
 from .simple_pl_parser import SimplePLParser
 from .spectra_plot_item import SpectraPlotItem
-from .measured_spectrum import openMeasuredSpectrum
 from .expanding_spectrum import ExpandingSpectrum
 from .instruments.spectrometer import Spectrometer
 from .instruments.lockin import Lockin
@@ -478,17 +477,7 @@ class MainWindow(QtGui.QMainWindow):
             return
         dirpath, _filename = os.path.split(filepath)
         settings.setValue('last_directory', dirpath)
-        wavelength = self.spectrum.wavelength
-        rawSignal = self.spectrum.raw
-        phase = self.spectrum.phase
-        signal = self.spectrum.intensity
-        with open(filepath, 'w') as f:
-            f.write('Wavelength\tSignal\tRaw_Signal\tPhase\n')
-            for i in xrange(wavelength.size):
-                f.write('%.1f\t%E\t%E\t%.1f\n' % (wavelength[i],
-                                                  signal[i],
-                                                  rawSignal[i],
-                                                  phase[i]))
+        self.spectrum.save(filepath)
         self._scanSaved = True
 
     def about(self):
