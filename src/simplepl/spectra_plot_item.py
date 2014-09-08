@@ -25,6 +25,8 @@
 from PySide import QtCore
 import pyqtgraph as pg
 from pyqtgraph.graphicsItems.PlotItem import PlotItem
+from pyqtgraph.graphicsItems.ViewBox import ViewBox
+from pyqtgraph.graphicsItems.PlotDataItem import PlotDataItem
 
 # local imports
 from abstract_spectrum import AbstractSpectrum
@@ -53,13 +55,46 @@ class SpectraPlotItem(PlotItem):
         self._spectra = []
         self._signalLines = []
         self._rawSignalLines = []
-        self._PhaseLines = []
+        self._phaseLines = []
         self._xaxis = kwargs.get('xaxis', 'wavelength')
+        self._phaseViewBox = None
+        self.showAxis('right')
+
+        # Label the axes
+        self.setLabel('left', 'Signal', 'V')
+        self.setLabel('right', 'Phase', '&deg;')
+        if self._xaxis == 'wavelength':
+            self.setLabel('bottom', 'Wavelength (nm)')
+        elif self._xaxis == 'energy':
+            self.setLabel('bottom', 'Energy', 'eV')
+
+        # Add the spectra
         for spectrum in spectra:
             self.addSpectrum(spectrum)
 
-        self._signalPen = pg.mkPen('b')
-        self._rawSignalPen = pg.mkPen('#5050B0', style=QtCore.Qt.DashLine)
+    def _getPhaseViewBox(self):
+        if self._phaseViewBox is None:
+            # Initialize it
+            self._phaseViewBox = ViewBox()
+            self.scene().addItem(self._phaseViewBox)
+            self.getAxis('right').linkToView(self._phaseViewBox)
+            self._phaseViewBox.setXLink(self)
+            self.updateViews()
+            self.vb.sigResized.connect(self.updateViews)
+        return self._phaseViewBox
+
+    def updateViews(self):
+        # View has resized; update auxiliary views to match
+        self._phaseViewBox.setGeometry(self.vb.sceneBoundingRect())
+
+        # need to re-update linked axes since this was called
+        # incorrectly while views had different shapes.
+        # (probably this should be handled in ViewBox.resizeEvent)
+        self._phaseViewBox.linkedViewChanged(self.vb,
+                                             self._phaseViewBox.XAxis)
+
+    def getColor(self):
+        return pg.mkColor('b')
 
     @QtCore.Slot(AbstractSpectrum)
     def removeSpectrum(self, spectrum):
@@ -67,9 +102,10 @@ class SpectraPlotItem(PlotItem):
             raise ValueError('spectrum not in plot')
         spectrum.sigChanged.disconnect(self.updateLines())
         i = self._spectra.index(spectrum)
-        self.removeItem(self._signalLines[i])
-        del self._spectra[i]
-        del self._signalLines[i]
+        self._spectra.pop(i)
+        self.removeItem(self._signalLines.pop(i))
+        self.removeItem(self._rawSignalLines.pop(i))
+        self._getPhaseViewBox().removeItem(self._phaseLines.pop(i))
 
     def getX(self, spectrum):
         if self._xaxis == 'wavelength':
@@ -85,14 +121,26 @@ class SpectraPlotItem(PlotItem):
         if spectrum in self._spectra:
             raise ValueError('spectrum alread in plot')
 
+        signalColor = self.getColor()
+        rawSignalColor = signalColor.lighter()
+        phaseColor = rawSignalColor.lighter(120)
+
         signalLine = self.plot(x=self.getX(spectrum),
                                y=spectrum.getSignal(),
-                               pen=self._signalPen)
+                                  pen=pg.mkPen(signalColor))
         rawSignalLine = self.plot(x=self.getX(spectrum),
                                   y=spectrum.getRawSignal(),
-                                  pen=self._rawSignalPen)
+                                  pen=pg.mkPen(rawSignalColor,
+                                               style=QtCore.Qt.DashLine))
+        phaseLine = PlotDataItem(x=self.getX(spectrum),
+                                 y=spectrum.getPhase(),
+                                 pen=pg.mkPen(phaseColor,
+                                              style=QtCore.Qt.DotLine))
+        self._getPhaseViewBox().addItem(phaseLine)
+
         self._signalLines.append(signalLine)
         self._rawSignalLines.append(rawSignalLine)
+        self._phaseLines.append(phaseLine)
         self._spectra.append(spectrum)
         spectrum.sigChanged.connect(self.updateLines)
 
@@ -103,3 +151,6 @@ class SpectraPlotItem(PlotItem):
         for spectrum, line in zip(self._spectra, self._rawSignalLines):
             line.setData(x=self.getX(spectrum),
                          y=spectrum.getRawSignal())
+        for spectrum, line in zip(self._spectra, self._phaseLines):
+            line.setData(x=self.getX(spectrum),
+                         y=spectrum.getPhase())
