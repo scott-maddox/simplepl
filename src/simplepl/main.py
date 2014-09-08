@@ -34,6 +34,7 @@ if __name__ == '__main__':
     sys.path.insert(0,
         os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     import simplepl
+    # This doesn't work with py2app:
     #assert os.path.dirname(simplepl.__file__) == os.path.dirname(__file__)
 from simplepl.exception_handling import install_excepthook
 from simplepl.main_window import MainWindow
