@@ -26,7 +26,7 @@ import sys
 
 # third party imports
 from PySide import QtGui, QtCore
-from single_process import single_process
+
 # local imports
 if __name__ == '__main__':
     # Make sure we're importing the local simplepl package
@@ -40,7 +40,6 @@ from simplepl.exception_handling import install_excepthook
 from simplepl.main_window import MainWindow
 
 
-@single_process
 def run(debug, simulate):
     app = QtGui.QApplication([])
 
@@ -64,6 +63,10 @@ def run(debug, simulate):
     w.raise_()
 
     app.exec_()
+
+if sys.platform != 'win32':
+    from single_process import single_process
+    run = single_process(run)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
