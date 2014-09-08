@@ -50,7 +50,7 @@ class SpectraPlotItem(pg.PlotItem):
             labels=None, title=None, viewBox=None, axisItems=None,
             enableMenu=True, **kwargs)
         self._spectra = []
-        self._lines = []
+        self._signalLines = []
         self._xaxis = kwargs.get('xaxis', 'wavelength')
         for spectrum in spectra:
             self.addSpectrum(spectrum)
@@ -61,9 +61,9 @@ class SpectraPlotItem(pg.PlotItem):
             raise ValueError('spectrum not in plot')
         spectrum.sigChanged.disconnect(self.updateLines())
         i = self._spectra.index(spectrum)
-        self.removeItem(self._lines[i])
+        self.removeItem(self._signalLines[i])
         del self._spectra[i]
-        del self._lines[i]
+        del self._signalLines[i]
 
     @QtCore.Slot(AbstractSpectrum)
     def addSpectrum(self, spectrum):
@@ -78,12 +78,12 @@ class SpectraPlotItem(pg.PlotItem):
                              .format(self._xaxis))
         y = spectrum.intensity
         line = self.plot(x=x, y=y)
-        self._lines.append(line)
+        self._signalLines.append(line)
         self._spectra.append(spectrum)
         spectrum.sigChanged.connect(self.updateLines)
     
     def updateLines(self):
-        for spectrum, line in zip(self._spectra, self._lines):
+        for spectrum, line in zip(self._spectra, self._signalLines):
             if self._xaxis == 'wavelength':
                 x = spectrum.wavelength
             elif self._xaxis == 'energy':

@@ -19,16 +19,24 @@
 #
 #######################################################################
 
-# std lib imports
-
 # third party imports
 from PySide import QtCore
-
-# local imports
 
 
 class AbstractSpectrum(QtCore.QObject):
     sigChanged = QtCore.Signal()
-    wavelength = None
-    energy = None
-    intensity = None
+
+    def getWavelength(self):
+        raise NotImplementedError()
+
+    def getSignal(self):
+        raise NotImplementedError()
+
+    def getRawSignal(self):
+        raise NotImplementedError()
+
+    def getPhase(self):
+        raise NotImplementedError()
+
+    def getEnergy(self):
+        raise NotImplementedError()

@@ -33,56 +33,41 @@ from expanding_buffer import ExpandingBuffer
 
 
 class ExpandingSpectrum(MeasuredSpectrum):
+
     def __init__(self, sysresParser=None):
         super(MeasuredSpectrum, self).__init__()
         self.sysresParser = sysresParser
         self._wavelength = ExpandingBuffer()
         self._energy = ExpandingBuffer()
-        self._raw = ExpandingBuffer()
+        self._rawSignal = ExpandingBuffer()
         self._phase = ExpandingBuffer()
-        self._sysresrem = ExpandingBuffer()
+        self._signal = ExpandingBuffer()
 
-    def append(self, wavelength, raw, phase):
+    def append(self, wavelength, rawSignal, phase):
         if self.sysresParser is None:
             log.warning("No sysrem response provided. Using raw value.")
-            sysresrem = raw
+            signal = rawSignal
         else:
             sysres = self.sysresParser.get_sysres(wavelength)
-            sysresrem = raw / sysres
+            signal = rawSignal / sysres
         self._wavelength.append(wavelength)
-        self._energy.append(1239.842 / wavelength)
-        self._raw.append(raw)
+        self._signal.append(signal)
+        self._rawSignal.append(rawSignal)
         self._phase.append(phase)
-        self._sysresrem.append(sysresrem)
+        self._energy.append(1239.842 / wavelength)
         self.sigChanged.emit()
 
-    def _getWavelength(self):
+    def getWavelength(self):
         return self._wavelength.get()
 
-    def _getRaw(self):
-        return self._raw.get()
+    def getSignal(self):
+        return self._signal.get()
 
-    def _getPhase(self):
+    def getRawSignal(self):
+        return self._rawSignal.get()
+
+    def getPhase(self):
         return self._phase.get()
 
-    def _getIntensity(self):
-        return self._sysresrem.get()
-
-    def _getEnergy(self):
+    def getEnergy(self):
         return self._energy.get()
-
-    wavelength = QtCore.Property(np.ndarray, _getWavelength)
-    raw = QtCore.Property(np.ndarray, _getRaw)
-    phase = QtCore.Property(np.ndarray, _getPhase)
-    intensity = QtCore.Property(np.ndarray, _getIntensity)
-    energy = QtCore.Property(np.ndarray, _getEnergy)
-
-    def save(self, filepath):
-        wavelength = self._wavelength.get()
-        raw = self._raw.get()
-        sysresrem = self._sysresrem.get()
-        with open(filepath, 'w') as f:
-            f.write('Wavelength\tRaw\tSysResRem\n')
-            for i in xrange(wavelength.size):
-                f.write('%.1f\t%E\t%E\n' % (wavelength[i], raw[i],
-                                          sysresrem[i]))
