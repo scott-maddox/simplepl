@@ -69,6 +69,19 @@ class SpectraPlotItem(PlotItem):
         for spectrum in spectra:
             self.addSpectrum(spectrum)
 
+    def updateLogMode(self):
+        x = self.ctrl.logXCheck.isChecked()
+        y = self.ctrl.logYCheck.isChecked()
+        for i in self.items:
+            if hasattr(i, 'setLogMode'):
+                i.setLogMode(x,y)
+        self.getAxis('bottom').setLogMode(x)
+        self.getAxis('top').setLogMode(x)
+        self.getAxis('left').setLogMode(y)
+        #self.getAxis('right').setLogMode(y)  # disable log mode for phase axis
+        self.enableAutoRange()
+        self.recomputeAverages()
+
     def updateXAxisLabel(self):
         if self._xAxisView == 'wavelength':
             self.setLabel('bottom', 'Wavelength (nm)', '')
