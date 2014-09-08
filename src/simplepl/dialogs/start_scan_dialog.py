@@ -1,5 +1,5 @@
 #
-#   Copyright (c) 2013, Scott J Maddox
+#   Copyright (c) 2013-2014, Scott J Maddox
 #
 #   This file is part of SimplePL.
 #
@@ -14,7 +14,7 @@
 #   GNU Affero General Public License for more details.
 #
 #   You should have received a copy of the GNU Affero General Public
-#   License along with semicontrol.  If not, see
+#   License along with SimplePL.  If not, see
 #   <http://www.gnu.org/licenses/>.
 #
 #######################################################################
