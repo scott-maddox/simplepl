@@ -20,11 +20,11 @@
 #######################################################################
 
 # std lib imports
+import logging
+log = logging.getLogger(__name__)
 
 # third party imports
 import numpy as np
-
-# local imports
 
 
 class SimplePLParser(object):
@@ -147,7 +147,7 @@ class SimplePLParser(object):
 
     def _parseWavelengthSysResRem(self, first_line, f):
         if self.sysresFilepath is not None:
-            print "WARNING: Ignoring the provided system response file"
+            log.warn("Ignoring the provided system response file")
         # first_line is the column headers
         while True:
             line = f.readline()
@@ -161,7 +161,7 @@ class SimplePLParser(object):
 
     def _parseWavelengthSignalRawSignalPhase(self, first_line, f):
         if self.sysresFilepath is not None:
-            print "WARNING: Ignoring the signal column"
+            log.warn("Ignoring the signal column")
         # first_line is the column headers
         while True:
             line = f.readline()

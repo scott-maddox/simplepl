@@ -44,10 +44,6 @@ class SpectraPro2500i(object):
         #                           stopbits=serial.STOPBITS_ONE,
         #                           timeout=timeout)
 
-    def __del__(self):
-        log.debug("__del__: self._inst.close()")
-        #self._inst.close()
-
     def __read(self):
         '''
         Returns a full response from the instrument.

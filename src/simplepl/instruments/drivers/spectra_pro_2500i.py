@@ -15,7 +15,7 @@
 #
 #   You should have received a copy of the GNU Affero General Public License
 #   along with PhotonAcq.  If not, see <http://www.gnu.org/licenses/>.
-#   
+#
 ################################################################################
 
 # std lib imports
@@ -29,10 +29,11 @@ import serial
 
 SLEEP_TIME = 0.01
 
+
 class TimeoutException(Exception):
     pass
 
-#TODO: make sure the asked for nm is available on the given grating?
+
 class SpectraPro2500i(object):
     def __init__(self, port=0, timeout=30.):
         self._inst = serial.Serial(port,
@@ -41,10 +42,6 @@ class SpectraPro2500i(object):
                                    parity=serial.PARITY_NONE,
                                    stopbits=serial.STOPBITS_ONE,
                                    timeout=timeout)
-
-    def __del__(self):
-        log.debug("__del__: self._inst.close()")
-        self._inst.close()
 
     def __read(self):
         '''

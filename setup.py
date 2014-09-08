@@ -27,7 +27,7 @@ import glob
 from setuptools import setup, find_packages
 
 # read in __version__
-exec(open('src/plotliberator/version.py').read())
+exec(open('src/simplepl/version.py').read())
 
 # If on Mac OS X, build an app bundle using py2app
 if sys.platform == 'darwin':
@@ -39,9 +39,20 @@ if sys.platform == 'darwin':
                  )
     py2app_opts = dict(
                        argv_emulation=False,
-                       includes=['PySide', 'PySide.QtCore', 'PySide.QtGui',
-                                 'pyqtgraph', 'single_process'],
-                       excludes=['PySide.QtNetwork'],
+                       includes=['PySide',
+                                 'PySide.QtCore',
+                                 'PySide.QtGui',
+                                 'pyqtgraph',
+                                 'scipy.interpolate',
+                                 'single_process',
+                                 'serial'],
+                       excludes=['PySide.QtNetwork',
+                                 'wxpython',
+                                 'matplotlib',
+                                 'zmq',
+                                 'lib-dynload',
+                                 'numpy.linalg',
+                                 ],
                        plist=plist,
                        #iconfile=icons/plotliberator.icns',
                        )
@@ -74,6 +85,9 @@ setup(name='simplepl',
       author_email='smaddox@utexas.edu',
       license='AGPLv3',
       packages=['simplepl',
+                'simplepl.dialogs',
+                'simplepl.instruments',
+                'simplepl.instruments.drivers',
                 ],
       package_dir={'simplepl': 'src/simplepl'},
       zip_safe=True,
