@@ -45,4 +45,4 @@ class MeasuredSpectrum(AbstractSpectrum):
 def openMeasuredSpectrum(filepath, sysres_filepath=None):
     parser = SimplePLParser(filepath, sysres_filepath)
     parser.parse()
-    return MeasuredSpectrum(parser.wavelength, parser.sysresrem)
+    return MeasuredSpectrum(parser.wavelength, parser.signal)

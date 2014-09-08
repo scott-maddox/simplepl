@@ -45,4 +45,4 @@ for filename in filenames:
     with open(sysresrem_filename, 'w') as f:
         f.write('Wavelength\tSysResRem\n')
         for i in xrange(len(parser.wavelength)):
-            f.write('%.1f\t%E\n'%(parser.wavelength[i], parser.sysresrem[i]))
+            f.write('%.1f\t%E\n'%(parser.wavelength[i], parser.signal[i]))

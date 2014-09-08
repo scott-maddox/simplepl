@@ -111,12 +111,12 @@ with open(save_filepath, 'w') as f:
 
         # Output the system response removed array
         f.write("ImportString(u'`%s SysResRem`(numeric)','''\n"%token_diff)
-        for w in parser.sysresrem:
+        for w in parser.signal:
             f.write("%E\n"%w)
         f.write("''')\n")
 
         # Output the normalized array
-        normalized = parser.sysresrem / parser.sysresrem.max()
+        normalized = parser.signal / parser.signal.max()
         f.write("ImportString(u'`%s Normalized`(numeric)','''\n"%token_diff)
         for w in normalized:
             f.write("%E\n"%w)

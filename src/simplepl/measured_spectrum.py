@@ -58,17 +58,36 @@ class MeasuredSpectrum(AbstractSpectrum):
     def open(cls, filepath, sysres_filepath=None):
         parser = SimplePLParser(filepath, sysres_filepath)
         parser.parse()
-        return cls(parser.wavelength, parser.sysresrem)
+        return cls(wavelength=parser.wavelength,
+                   signal=parser.signal,
+                   rawSignal=parser.rawSignal,
+                   phase=parser.phase)
 
     def save(self, filepath):
-        wavelength = self.getWavelength()
-        signal = self.getSignal()
-        rawSignal = self.getRawSignal()
-        phase = self.getPhase()
+        wavelengths = self.getWavelength()
+        signals = self.getSignal()
+        rawSignals = self.getRawSignal()
+        phases = self.getPhase()
         with open(filepath, 'w') as f:
             f.write('Wavelength\tSignal\tRaw_Signal\tPhase\n')
-            for i in xrange(wavelength.size):
-                f.write('%.1f\t%E\t%E\t%.1f\n' % (wavelength[i],
-                                                  signal[i],
-                                                  rawSignal[i],
-                                                  phase[i]))
+            for i in xrange(wavelengths.size):
+                if wavelengths is not None:
+                    wavelength = wavelengths[i]
+                else:
+                    wavelength = np.nan
+                if signals is not None:
+                    signal = signals[i]
+                else:
+                    signal = np.nan
+                if rawSignals is not None:
+                    rawSignal = rawSignals[i]
+                else:
+                    rawSignal = np.nan
+                if phases is not None:
+                    phase = phases[i]
+                else:
+                    phase = np.nan
+                f.write('%.1f\t%E\t%E\t%.1f\n' % (wavelength,
+                                                  signal,
+                                                  rawSignal,
+                                                  phase))

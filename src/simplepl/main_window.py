@@ -208,6 +208,12 @@ class MainWindow(QtGui.QMainWindow):
         self.saveAction.setShortcut('Ctrl+S')
         self.saveAction.triggered.connect(self.saveFile)
 
+        self.saveAsAction = QtGui.QAction('&Save As', self)
+        self.saveAsAction.setStatusTip('Save the current spectrum')
+        self.saveAsAction.setToolTip('Save the current spectrum')
+        self.saveAsAction.setShortcut('Ctrl+Shift+S')
+        self.saveAsAction.triggered.connect(self.saveAsFile)
+
         self.closeAction = QtGui.QAction('Close &Window', self)
         self.closeAction.setStatusTip('Close the Window')
         self.closeAction.setToolTip('Close the Window')
@@ -286,6 +292,7 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(self.openAction)
         fileMenu.addAction(self.saveAction)
+        fileMenu.addAction(self.saveAsAction)
         fileMenu.addAction(self.closeAction)
         viewMenu = menubar.addMenu('&View')
         viewMenu.addAction(self.viewWavelengthAction)
@@ -351,6 +358,7 @@ class MainWindow(QtGui.QMainWindow):
         all = both and notScanning
         self.openAction.setEnabled(notScanning)
         self.saveAction.setEnabled(not self._scanSaved and notScanning)
+        self.saveAsAction.setEnabled(notScanning and self.spectrum is not None)
         self.gotoWavelengthAction.setEnabled(spec)
         self.startScanAction.setEnabled(all)
         self.abortScanAction.setEnabled(scanning)
@@ -517,6 +525,7 @@ class MainWindow(QtGui.QMainWindow):
         # plot the measured spectrum
         self.plot.addSpectrum(spectrum)
         self.spectrum = spectrum
+        self.updateActions()
 
     def savePrompt(self):
         reply = QtGui.QMessageBox.question(self, 'Save?',
@@ -540,6 +549,9 @@ class MainWindow(QtGui.QMainWindow):
         settings.setValue('last_directory', dirpath)
         self.spectrum.save(filepath)
         self._scanSaved = True
+
+    def saveAsFile(self):
+        self.saveFile()
 
     def about(self):
         title = 'About SimplePL'
