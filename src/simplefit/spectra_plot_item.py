@@ -51,7 +51,7 @@ class SpectraPlotItem(pg.PlotItem):
             enableMenu=True, **kwargs)
         self._spectra = []
         self._signalLines = []
-        self._xaxis = kwargs.get('xaxis', 'wavelength')
+        self._xAxisView = kwargs.get('xaxis', 'wavelength')
         for spectrum in spectra:
             self.addSpectrum(spectrum)
     
@@ -69,13 +69,13 @@ class SpectraPlotItem(pg.PlotItem):
     def addSpectrum(self, spectrum):
         if spectrum in self._spectra:
             raise ValueError('spectrum alread in plot')
-        if self._xaxis == 'wavelength':
+        if self._xAxisView == 'wavelength':
             x = spectrum.wavelength
-        elif self._xaxis == 'energy':
+        elif self._xAxisView == 'energy':
             x = spectrum.energy
         else:
             raise ValueError('Unsupported value for xaxis: {}'
-                             .format(self._xaxis))
+                             .format(self._xAxisView))
         y = spectrum.intensity
         line = self.plot(x=x, y=y)
         self._signalLines.append(line)
@@ -84,13 +84,13 @@ class SpectraPlotItem(pg.PlotItem):
     
     def updateLines(self):
         for spectrum, line in zip(self._spectra, self._signalLines):
-            if self._xaxis == 'wavelength':
+            if self._xAxisView == 'wavelength':
                 x = spectrum.wavelength
-            elif self._xaxis == 'energy':
+            elif self._xAxisView == 'energy':
                 x = spectrum.energy
             else:
                 raise ValueError('Unsupported value for xaxis: {}'
-                                 .format(self._xaxis))
+                                 .format(self._xAxisView))
             y = spectrum.intensity
             line.setData(x=x, y=y)
     

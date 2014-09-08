@@ -174,6 +174,25 @@ class MainWindow(QtGui.QMainWindow):
         self.closeAction.setShortcut('Ctrl+W')
         self.closeAction.triggered.connect(self.close)
 
+        self.viewWavelengthAction = QtGui.QAction('&Wavelength', self)
+        self.viewWavelengthAction.setStatusTip('Plot against Wavelength')
+        self.viewWavelengthAction.setToolTip('Plot against Wavelength')
+        self.viewWavelengthAction.setShortcut('Ctrl+Shift+W')
+        self.viewWavelengthAction.triggered.connect(self.viewWavelength)
+        self.viewWavelengthAction.setCheckable(True)
+        self.viewWavelengthAction.setChecked(True)
+
+        self.viewEnergyAction = QtGui.QAction('&Energy', self)
+        self.viewEnergyAction.setStatusTip('Plot against Energy')
+        self.viewEnergyAction.setToolTip('Plot against Energy')
+        self.viewEnergyAction.setShortcut('Ctrl+Shift+e')
+        self.viewEnergyAction.triggered.connect(self.viewEnergy)
+        self.viewEnergyAction.setCheckable(True)
+
+        group = QtGui.QActionGroup(self)
+        group.addAction(self.viewWavelengthAction)
+        group.addAction(self.viewEnergyAction)
+
         self.gotoWavelengthAction = QtGui.QAction('&Go to wavelength', self)
         self.gotoWavelengthAction.setStatusTip('Go to a wavelength')
         self.gotoWavelengthAction.setToolTip('Go to a wavelength')
@@ -228,6 +247,9 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu.addAction(self.openAction)
         fileMenu.addAction(self.saveAction)
         fileMenu.addAction(self.closeAction)
+        viewMenu = menubar.addMenu('&View')
+        viewMenu.addAction(self.viewWavelengthAction)
+        viewMenu.addAction(self.viewEnergyAction)
         scanMenu = menubar.addMenu('&Scan')
         scanMenu.addAction(self.gotoWavelengthAction)
         scanMenu.addAction(self.startScanAction)
@@ -263,6 +285,12 @@ class MainWindow(QtGui.QMainWindow):
         self.setWindowTitle('SimplePL')
         self.setMinimumSize(576, 432)
         self.readWindowSettings()
+
+    def viewWavelength(self):
+        self.plot.setXAxisView('wavelength')
+
+    def viewEnergy(self):
+        self.plot.setXAxisView('energy')
 
     def setWavelength(self):
         wavelength = SetWavelengthDialog.getWavelength(

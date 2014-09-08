@@ -46,7 +46,7 @@ class SpectraPlotItem(PlotItem):
         '''
         Keyword Arguments
         -----------------
-        xaxis : str
+        xAxisView : str
             can be 'wavelength' (default) or 'energy'
         '''
         super(SpectraPlotItem, self).__init__(parent=None, name=None,
@@ -56,21 +56,29 @@ class SpectraPlotItem(PlotItem):
         self._signalLines = []
         self._rawSignalLines = []
         self._phaseLines = []
-        self._xaxis = kwargs.get('xaxis', 'wavelength')
+        self._xAxisView = kwargs.get('xAxisView', 'wavelength')
         self._phaseViewBox = None
         self.showAxis('right')
 
         # Label the axes
         self.setLabel('left', 'Signal', 'V')
         self.setLabel('right', 'Phase', '&deg;')
-        if self._xaxis == 'wavelength':
-            self.setLabel('bottom', 'Wavelength (nm)')
-        elif self._xaxis == 'energy':
-            self.setLabel('bottom', 'Energy', 'eV')
+        self.updateXAxisLabel()
 
         # Add the spectra
         for spectrum in spectra:
             self.addSpectrum(spectrum)
+
+    def updateXAxisLabel(self):
+        if self._xAxisView == 'wavelength':
+            self.setLabel('bottom', 'Wavelength (nm)', '')
+        elif self._xAxisView == 'energy':
+            self.setLabel('bottom', 'Energy', 'eV')
+
+    def setXAxisView(self, s):
+        self._xAxisView = s
+        self.updateXAxisLabel()
+        self.updateLines()
 
     def _getPhaseViewBox(self):
         if self._phaseViewBox is None:
@@ -108,13 +116,13 @@ class SpectraPlotItem(PlotItem):
         self._getPhaseViewBox().removeItem(self._phaseLines.pop(i))
 
     def getX(self, spectrum):
-        if self._xaxis == 'wavelength':
+        if self._xAxisView == 'wavelength':
             return spectrum.getWavelength()
-        elif self._xaxis == 'energy':
+        elif self._xAxisView == 'energy':
             return spectrum.getEnergy()
         else:
             raise ValueError('Unsupported value for xaxis: {}'
-                             .format(self._xaxis))
+                             .format(self._xAxisView))
 
     @QtCore.Slot(AbstractSpectrum)
     def addSpectrum(self, spectrum):
