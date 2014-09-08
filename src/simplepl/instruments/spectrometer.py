@@ -108,7 +108,7 @@ class Spectrometer(QtCore.QObject):
         # Initialize QSettings object
         self._settings = QtCore.QSettings()
 
-        simulate = self._settings.value('simulate', False)
+        simulate = int(self._settings.value('simulate', False))
         if simulate:
             print "Simulating spectrometer and filter wheel..."
             from drivers.spectra_pro_2500i_sim import SpectraPro2500i
@@ -309,8 +309,8 @@ class Spectrometer(QtCore.QObject):
         for i in xrange(size - 1):
             self._settings.setArrayIndex(i)
             wavelengths.append(float(self._settings.value('wavelength')))
-            gratings.append(self._settings.value('grating'))
-            filters.append(self._settings.value('filter'))
+            gratings.append(int(self._settings.value('grating')))
+            filters.append(int(self._settings.value('filter')))
         self._settings.setArrayIndex(size - 1)
         wavelengths.append(self._settings.value('wavelength'))
         self._settings.endArray()

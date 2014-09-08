@@ -61,7 +61,7 @@ class Lockin(QtCore.QObject):
 
     def _started(self):
         settings = QtCore.QSettings()
-        simulate = settings.value('simulate', False)
+        simulate = int(settings.value('simulate', False))
         if simulate:
             print "Simulating lock-in..."
             from drivers.srs_sr830_sim import SR830

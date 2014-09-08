@@ -2,6 +2,7 @@
 # tmp files
 *.swp
 *.bak
+*.lock
 
 # compiled source
 *.pyc

@@ -49,8 +49,8 @@ def run(debug, simulate):
 
     # Set up logging
     settings = QtCore.QSettings()
-    settings.setValue('debug', debug)
-    settings.setValue('simulate', simulate)
+    settings.setValue('debug', int(debug))
+    settings.setValue('simulate', int(simulate))
     settings.sync()
     if debug:
         logging.basicConfig(level=logging.DEBUG)

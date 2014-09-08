@@ -41,7 +41,7 @@ class WavelengthSpinBox(QtGui.QDoubleSpinBox):
         self.setRange(wlmin, wlmax)
         self.setSingleStep(precision)
         if value is not None:
-            self.setValue(value)
+            self.setValue(float(value))
 
     def getMinWavelength(self):
         return float(self._settings.value('WavelengthSpinBox/min', 0.1))

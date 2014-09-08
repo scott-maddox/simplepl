@@ -37,12 +37,24 @@ class TimeoutException(Exception):
 
 class SpectraPro2500i(object):
     def __init__(self, port=0, timeout=30.):
+        # First, do a quick check that this is the right instrument
         self._inst = serial.Serial(port,
                                    baudrate=9600,
                                    bytesize=serial.EIGHTBITS,
                                    parity=serial.PARITY_NONE,
                                    stopbits=serial.STOPBITS_ONE,
-                                   timeout=timeout)
+                                   timeout=5)
+        self.get_id()
+        self._inst.close()
+        # Now use a long timetout so that grating changes
+        # don't cause a timeout
+        self._inst = serial.Serial(port,
+                                   baudrate=9600,
+                                   bytesize=serial.EIGHTBITS,
+                                   parity=serial.PARITY_NONE,
+                                   stopbits=serial.STOPBITS_ONE,
+                                   timeout=30)
+        self.get_id()
 
     def __read(self):
         '''
@@ -84,6 +96,9 @@ class SpectraPro2500i(object):
         log.debug("__ask: __write('%s')", s)
         self.__write(s)
         return self._read()
+
+    def get_id(self):
+        return self._ask('*idn?')
 
     # Wavelength movement commands
 
@@ -218,16 +233,16 @@ if __name__ == "__main__":
     print spec.get_model()
     print 'Get the serial:'
     print spec.get_serial()
-    time.sleep(1)
-    print 'Get the grating list:'
-    print spec.get_grating_list()
-    print 'Done!'
-    spec.set_grating(1)
-    print 'goto 5000'
-    spec.goto(5000)
-    print 'done!'
-    print 'goto 2600'
-    spec.goto(2600)
+#     time.sleep(1)
+#     print 'Get the grating list:'
+#     print spec.get_grating_list()
+#     print 'Done!'
+#     spec.set_grating(1)
+#     print 'goto 5000'
+#     spec.goto(5000)
+#     print 'done!'
+#     print 'goto 2600'
+#     spec.goto(2600)
     print 'done!'
     print 'Closing the serial port...'
     spec.close()

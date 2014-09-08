@@ -29,12 +29,12 @@ class LockinConfigDialog(QtGui.QDialog):
         self.setModal(True)
 
         settings = QtCore.QSettings()
-        timeConstantIndex = settings.value('lockin/time_constant_index',
-                                           9)  # 300 ms default
-        reserveModeIndex = settings.value('lockin/reserve_mode_index',
-                                          0)  # High reserve default
-        inputLineFilterIndex = settings.value('lockin/input_line_filter_index',
-                                              3)  # both filters default
+        timeConstantIndex = int(settings.value('lockin/time_constant_index',
+                                               9))  # 300 ms default
+        reserveModeIndex = int(settings.value('lockin/reserve_mode_index',
+                                              0))  # High reserve default
+        inputLineFilterIndex = int(settings.value('lockin/input_line_filter_index',
+                                                  3))  # both filters default
 
         self.timeConstantComboBox = QtGui.QComboBox()
         for text in lockin.getTimeConstantOptions():

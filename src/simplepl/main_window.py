@@ -521,12 +521,12 @@ class MainWindow(QtGui.QMainWindow):
         self.spectrometer.setExitMirror(exitMirror)
 
     def applyLockinConfig(self):
-        timeConstantIndex = self._settings.value('lockin/time_constant_index',
-                                           9)  # 300 ms default
-        reserveModeIndex = self._settings.value('lockin/reserve_mode_index',
-                                          0)  # High reserve default
-        inputLineFilterIndex = self._settings.value('lockin/input_line_filter_index',
-                                              3)  # both filters default
+        timeConstantIndex = int(self._settings.value('lockin/time_constant_index',
+                                                     9))  # 300 ms default
+        reserveModeIndex = int(self._settings.value('lockin/reserve_mode_index',
+                                                    0))  # High reserve default
+        inputLineFilterIndex = int(self._settings.value('lockin/input_line_filter_index',
+                                                        3))  # both filters default
         self.lockin.setTimeConstantIndex(timeConstantIndex)
         self.lockin.setReserveModeIndex(reserveModeIndex)
         self.lockin.setInputLineFilterIndex(inputLineFilterIndex)
