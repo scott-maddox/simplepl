@@ -341,14 +341,14 @@ class Spectrometer(QtCore.QObject):
     def getMinWavelength(self):
         _size = self._settings.beginReadArray('spectrometer/configs')
         self._settings.setArrayIndex(0)
-        wavelength = self._settings.value('wavelength', 0.)
+        wavelength = float(self._settings.value('wavelength', 0.))
         self._settings.endArray()
         return wavelength
 
     def getMaxWavelength(self):
         size = self._settings.beginReadArray('spectrometer/configs')
         self._settings.setArrayIndex(size - 1)
-        wavelength = self._settings.value('wavelength', 10000.)
+        wavelength = float(self._settings.value('wavelength', 10000.))
         self._settings.endArray()
         return wavelength
 
