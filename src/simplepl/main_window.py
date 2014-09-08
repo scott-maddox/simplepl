@@ -48,6 +48,17 @@ class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
+        # Initialize private variables
+        self.plot = None
+        self.spectrum = None
+        self._grating = None
+        self._filter = None
+        self._wavelength = None
+        self._signal = None
+        self._rawSignal = None
+        self._phase = None
+        self._wavelengthTarget = None
+
         # Internal flags
         self._scanSaved = True
 
@@ -55,7 +66,6 @@ class MainWindow(QtGui.QMainWindow):
         self._settings = QtCore.QSettings()
 
         # Initialize GUI stuff
-        self.spectrum = None
         self.initUI()
 
         # Diable all actions except for configuring the ports,
@@ -72,13 +82,6 @@ class MainWindow(QtGui.QMainWindow):
         # Initialize the current instrument values
         sysResPath = self._settings.value('sysResPath')
         self._sysresParser = SimplePLParser(None, sysResPath)
-        self._grating = None
-        self._filter = None
-        self._wavelength = None
-        self._signal = None
-        self._rawSignal = None
-        self._phase = None
-        self._wavelengthTarget = None
 
     def initSpectrometer(self):
         self.spectrometer = Spectrometer()
@@ -236,6 +239,14 @@ class MainWindow(QtGui.QMainWindow):
         self.viewEnergyAction.triggered.connect(self.viewEnergy)
         self.viewEnergyAction.setCheckable(True)
 
+        self.viewSemilogAction = QtGui.QAction('Semi-&log', self)
+        self.viewSemilogAction.setStatusTip('Plot the log of the y-axis')
+        self.viewSemilogAction.setToolTip('Plot the log of the y-axis')
+        self.viewSemilogAction.setShortcut('Ctrl+Shift+L')
+        self.viewSemilogAction.changed.connect(self.viewSemilog)
+        self.viewSemilogAction.setCheckable(True)
+        self.viewSemilogAction.setChecked(False)
+
         group = QtGui.QActionGroup(self)
         group.addAction(self.viewWavelengthAction)
         group.addAction(self.viewEnergyAction)
@@ -301,8 +312,12 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu.addAction(self.saveAsAction)
         fileMenu.addAction(self.closeAction)
         viewMenu = menubar.addMenu('&View')
+        viewMenu.addSeparator().setText("X Axis")
         viewMenu.addAction(self.viewWavelengthAction)
         viewMenu.addAction(self.viewEnergyAction)
+        viewMenu.addSeparator().setText("Y Axis")
+        viewMenu.addAction(self.viewSemilogAction)
+        self.viewSemilogAction.changed.connect(self.viewSemilog)
         scanMenu = menubar.addMenu('&Scan')
         scanMenu.addAction(self.gotoWavelengthAction)
         scanMenu.addAction(self.startScanAction)
@@ -356,6 +371,11 @@ class MainWindow(QtGui.QMainWindow):
         self._wavelengthTarget = wavelength
         self.spectrometer.setWavelength(self._wavelengthTarget)
 
+    def viewSemilog(self):
+        logMode = self.viewSemilogAction.isChecked()
+        if self.plot:
+            self.plot.setLogMode(None, logMode)
+
     def updateActions(self):
         spec = self._spectrometerInitilized
         lockin = self._lockinInitilized
@@ -366,7 +386,7 @@ class MainWindow(QtGui.QMainWindow):
         self.openAction.setEnabled(notScanning)
         self.saveAction.setEnabled(not self._scanSaved and notScanning)
         self.saveAsAction.setEnabled(notScanning and self.spectrum is not None)
-        self.gotoWavelengthAction.setEnabled(spec)
+        self.gotoWavelengthAction.setEnabled(spec and notScanning)
         self.startScanAction.setEnabled(all)
         self.abortScanAction.setEnabled(scanning)
         self.configPortsAction.setEnabled(notScanning)
@@ -417,8 +437,8 @@ class MainWindow(QtGui.QMainWindow):
 
         start, _stop, _step, _delay = params
 
+        self._isScanning = True
         self.updateActions()
-        self.abortScanAction.setEnabled(True)
 
         if self.spectrum:
             self.plot.removeSpectrum(self.spectrum)
@@ -426,7 +446,6 @@ class MainWindow(QtGui.QMainWindow):
         self.plot.addSpectrum(self.spectrum)
         self.spectrometer.sigWavelength.connect(self._scanPart1)
         self.lockin.sigAdjustAndGetOutputsFinished.connect(self._scanPart2)
-        self._isScanning = True
 
         self._wavelengthTarget = start
         self.spectrometer.setWavelength(self._wavelengthTarget)
