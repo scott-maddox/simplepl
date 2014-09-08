@@ -37,6 +37,9 @@ class Lockin(QtCore.QObject):
     '''
     _sigAdjustAndGetOutputs = QtCore.Signal(float)
 
+    sigException = QtCore.Signal(Exception)
+    sigInitialized = QtCore.Signal()
+
     sigRawSignal = QtCore.Signal(float)
     sigPhase = QtCore.Signal(float)
     sigAdjustAndGetOutputsFinished = QtCore.Signal(float, float)
@@ -55,6 +58,28 @@ class Lockin(QtCore.QObject):
         self.moveToThread(self.thread)
         self.thread.started.connect(self._started)
         self.thread.start()
+
+    def _started(self):
+        settings = QtCore.QSettings()
+        simulate = settings.value('simulate', False)
+        if simulate:
+            print "Simulating lock-in..."
+            from drivers.srs_sr830_sim import SR830
+        else:
+            from drivers.srs_sr830 import SR830
+
+        lockinPort = settings.value('lockin/port', 'GPIB::8')
+        with QtCore.QMutexLocker(self._instLock):
+            try:
+                self._inst = SR830(port=lockinPort)
+            except:
+                e = IOError('Unable to connect to lock-in at port {}'
+                            ''.format(lockinPort))
+                self.sigException.emit(e)
+                return
+
+        # Notify the gui that initialization went fine
+        self.sigInitialized.emit()
 
     def getTimeConstantOptions(self):
         return self._inst.time_constant_labels
@@ -97,23 +122,6 @@ class Lockin(QtCore.QObject):
     def setInputLineFilterIndex(self, i):
         with QtCore.QMutexLocker(self._instLock):
             self._inst.set_input_line_filter(i)
-
-    def _started(self):
-        settings = QtCore.QSettings()
-        simulate = settings.value('simulate', False)
-        if simulate:
-            print "Simulating lock-in..."
-            from drivers.srs_sr830_sim import SR830
-        else:
-            from drivers.srs_sr830 import SR830
-
-        lockinPort = settings.value('lockin/port', 'GPIB::8')
-        with QtCore.QMutexLocker(self._instLock):
-            try:
-                self._inst = SR830(port=lockinPort)
-            except:
-                raise IOError('unable to connect to lock-in at port {}'
-                              ''.format(lockinPort))
 
     @QtCore.Slot(float)
     def _adjustAndGetOutputs(self, delay):

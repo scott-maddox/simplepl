@@ -35,6 +35,7 @@ if __name__ == '__main__':
         os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     import simplepl
     assert os.path.dirname(simplepl.__file__) == os.path.dirname(__file__)
+from simplepl.exception_handling import install_excepthook
 from simplepl.main_window import MainWindow
 
 
@@ -53,6 +54,7 @@ def run(debug, simulate):
     settings.sync()
     if debug:
         logging.basicConfig(level=logging.DEBUG)
+    install_excepthook()
 
     # Create main window
     w = MainWindow()

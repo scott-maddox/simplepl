@@ -49,6 +49,7 @@ class FilterChanger(QtCore.QObject):
     def wait(self):
         self.thread.wait()
 
+
 class Spectrometer(QtCore.QObject):
     '''
     Provides an asynchronous interface to the spectrometer.
@@ -66,8 +67,12 @@ class Spectrometer(QtCore.QObject):
     _sigSetEntranceMirror = QtCore.Signal(str)
     _sigSetExitMirror = QtCore.Signal(str)
 
+    sigException = QtCore.Signal(Exception)
+    sigInitialized = QtCore.Signal()
+
     sigChangingGrating = QtCore.Signal()
     sigChangingFilter = QtCore.Signal()
+    sigChangingWavelength = QtCore.Signal()
 
     sigGrating = QtCore.Signal(int)
     sigFilter = QtCore.Signal(int)
@@ -98,7 +103,6 @@ class Spectrometer(QtCore.QObject):
         self.thread = QtCore.QThread()
         self.moveToThread(self.thread)
         self.thread.started.connect(self._started)
-        self.thread.start()
 
     def _started(self):
         # Initialize QSettings object
@@ -119,8 +123,10 @@ class Spectrometer(QtCore.QObject):
             try:
                 self._spectrometer = SpectraPro2500i(port=spectrometerPort)
             except:
-                raise IOError('unable to connect to spectrometer at port {}'
-                              ''.format(spectrometerPort))
+                e = IOError('unable to connect to spectrometer at '
+                            'port {}'.format(spectrometerPort))
+                self.sigException.emit(e)
+                return
 
         # Initialize the filter wheel
         filterWheelPort = int(self._settings.value('filterWheel/port', 3))
@@ -128,8 +134,18 @@ class Spectrometer(QtCore.QObject):
             try:
                 self._filterWheel = FW102C(port=filterWheelPort)
             except:
-                raise IOError('unable to connect to spectrometer at port {}'
-                              ''.format(filterWheelPort))
+                e = IOError('unable to connect to filter wheel at '
+                            'port {}'.format(filterWheelPort))
+                self.sigException.emit(e)
+                return
+
+        # Notify the gui that initialization went fine
+        self.sigInitialized.emit()
+
+        # Initialize the statusbar
+        self._getGrating()
+        self._getFilter()
+        self._getWavelength()
 
     def getGratingCount(self):
         return 9
@@ -139,6 +155,8 @@ class Spectrometer(QtCore.QObject):
 
     @QtCore.Slot()
     def _getGrating(self):
+        if self._spectrometer is None:
+            return
         with QtCore.QMutexLocker(self._spectrometerLock):
             result = self._spectrometer.get_grating()
         self._grating = result
@@ -175,6 +193,8 @@ class Spectrometer(QtCore.QObject):
 
     @QtCore.Slot()
     def _getFilter(self):
+        if self._spectrometer is None:
+            return
         with QtCore.QMutexLocker(self._filterWheelLock):
             result = self._filterWheel.get_filter()
         self._filter = result
@@ -222,6 +242,8 @@ class Spectrometer(QtCore.QObject):
 
     @QtCore.Slot()
     def _getWavelength(self):
+        if self._spectrometer is None:
+            return
         with QtCore.QMutexLocker(self._spectrometerLock):
             result = self._spectrometer.get_wavelength()
         self.sigWavelength.emit(result)
@@ -267,6 +289,7 @@ class Spectrometer(QtCore.QObject):
             self.setFilter(targetFilter)
 
         # Go to the specified target wavelength
+        self.sigChangingWavelength.emit()
         with QtCore.QMutexLocker(self._spectrometerLock):
             self._spectrometer.goto(wavelength)
         self._getWavelength()  # read and emit the resulting wavelength

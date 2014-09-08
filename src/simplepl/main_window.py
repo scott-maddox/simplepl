@@ -29,6 +29,7 @@ import pyqtgraph as pg
 # local imports
 from .simple_pl_parser import SimplePLParser
 from .spectra_plot_item import SpectraPlotItem
+from .measured_spectrum import MeasuredSpectrum
 from .expanding_spectrum import ExpandingSpectrum
 from .instruments.spectrometer import Spectrometer
 from .instruments.lockin import Lockin
@@ -52,22 +53,22 @@ class MainWindow(QtGui.QMainWindow):
         # Initialize QSettings object
         self._settings = QtCore.QSettings()
 
-        # Initialize instruments
-        self.spectrometer = Spectrometer()
-        self.lockin = Lockin()
-        self.spectrometer.sigChangingGrating.connect(self.changingGrating)
-        self.spectrometer.sigChangingFilter.connect(self.changingFilter)
-        self.spectrometer.sigGrating.connect(self.updateGrating)
-        self.spectrometer.sigFilter.connect(self.updateFilter)
-        self.spectrometer.sigWavelength.connect(self.updateWavelength)
-        self.lockin.sigRawSignal.connect(self.updateRawSignal)
-        self.lockin.sigPhase.connect(self.updatePhase)
-        self.spectrometer.getGrating()
-        self.spectrometer.getFilter()
-        self.spectrometer.getWavelength()
+        # Initialize GUI stuff
+        self.spectrum = None
+        self.initUI()
+
+        # Diable all actions except for configuring the ports,
+        # until the instruments are initialized
+        self._spectrometerInitilized = False
+        self._lockinInitilized = False
+        self._isScanning = False
+        self.updateActions()
+
+        # Initialize the instruments
+        self.initSpectrometer()
+        self.initLockin()
 
         # Initialize the current instrument values
-        self._isScanning = False
         self._sysresParser = SimplePLParser(None,
                 '2014-05-01 sysres - InSb detector - 2.5 mm slits - N2.txt')
         self._grating = None
@@ -78,9 +79,44 @@ class MainWindow(QtGui.QMainWindow):
         self._phase = None
         self._wavelengthTarget = None
 
-        # Initialize GUI stuff
-        self.spectrum = None
-        self.initUI()
+    def initSpectrometer(self):
+        self.spectrometer = Spectrometer()
+        self.spectrometer.sigException.connect(self.spectrometerException)
+        self.spectrometer.sigInitialized.connect(self.spectrometerInitialized)
+        self.spectrometer.sigChangingGrating.connect(self.changingGrating)
+        self.spectrometer.sigChangingFilter.connect(self.changingFilter)
+        self.spectrometer.sigChangingWavelength.connect(
+                                                    self.changingWavelength)
+        self.spectrometer.sigGrating.connect(self.updateGrating)
+        self.spectrometer.sigFilter.connect(self.updateFilter)
+        self.spectrometer.sigWavelength.connect(self.updateWavelength)
+        self.spectrometer.thread.start()
+
+    def initLockin(self):
+        self.lockin = Lockin()
+        self.lockin.sigException.connect(self.lockinException)
+        self.lockin.sigInitialized.connect(self.lockinInitialized)
+        self.lockin.sigRawSignal.connect(self.updateRawSignal)
+        self.lockin.sigPhase.connect(self.updatePhase)
+        self.lockin.thread.start()
+
+    @QtCore.Slot(Exception)
+    def spectrometerException(self, e):
+        raise e
+
+    @QtCore.Slot(Exception)
+    def lockinException(self, e):
+        raise e
+
+    @QtCore.Slot()
+    def spectrometerInitialized(self):
+        self._spectrometerInitilized = True
+        self.updateActions()
+
+    @QtCore.Slot()
+    def lockinInitialized(self):
+        self._lockinInitilized = True
+        self.updateActions()
 
     @QtCore.Slot()
     def changingGrating(self):
@@ -90,6 +126,10 @@ class MainWindow(QtGui.QMainWindow):
     @QtCore.Slot()
     def changingFilter(self):
         self.filterLabel.setText('Filter=?')
+
+    @QtCore.Slot()
+    def changingWavelength(self):
+        self.wavelengthLabel.setText('Wavelength=?')
 
     @QtCore.Slot(float)
     def updateGrating(self, grating):
@@ -300,36 +340,27 @@ class MainWindow(QtGui.QMainWindow):
         if wavelength is None:
             return
         self._wavelengthTarget = wavelength
-        self.updateWavelength(None)
         self.spectrometer.setWavelength(self._wavelengthTarget)
 
-    def enableActions(self):
-        self.aboutAction.setEnabled(True)
-        self.openAction.setEnabled(True)
-        self.saveAction.setEnabled(True)
-        self.gotoWavelengthAction.setEnabled(True)
-        self.startScanAction.setEnabled(True)
-        self.abortScanAction.setEnabled(False)
-        self.configPortsAction.setEnabled(True)
-        self.configLockinAction.setEnabled(True)
-        self.configDivertersAction.setEnabled(True)
-        self.configGratingsAndFiltersAction.setEnabled(True)
-
-    def disableActions(self):
-        self.aboutAction.setEnabled(False)
-        self.openAction.setEnabled(False)
-        self.saveAction.setEnabled(False)
-        self.gotoWavelengthAction.setEnabled(False)
-        self.startScanAction.setEnabled(False)
-        self.abortScanAction.setEnabled(True)
-        self.configPortsAction.setEnabled(False)
-        self.configLockinAction.setEnabled(False)
-        self.configDivertersAction.setEnabled(False)
-        self.configGratingsAndFiltersAction.setEnabled(False)
+    def updateActions(self):
+        spec = self._spectrometerInitilized
+        lockin = self._lockinInitilized
+        both = spec and lockin
+        scanning = self._isScanning
+        notScanning = not scanning
+        all = both and notScanning
+        self.openAction.setEnabled(notScanning)
+        self.saveAction.setEnabled(not self._scanSaved and notScanning)
+        self.gotoWavelengthAction.setEnabled(spec)
+        self.startScanAction.setEnabled(all)
+        self.abortScanAction.setEnabled(scanning)
+        self.configPortsAction.setEnabled(notScanning)
+        self.configLockinAction.setEnabled(lockin and notScanning)
+        self.configDivertersAction.setEnabled(spec and notScanning)
+        self.configGratingsAndFiltersAction.setEnabled(spec and notScanning)
 
     @QtCore.Slot(float)
     def _scanPart1(self, wavelength):
-        self.updateWavelength(wavelength)
         delay = float(self._settings.value('scan/delay', 0.5))
         self.lockin.adjustAndGetOutputs(delay)
 
@@ -370,7 +401,8 @@ class MainWindow(QtGui.QMainWindow):
 
         start, _stop, _step, _delay = params
 
-        self.disableActions()
+        self.updateActions()
+        self.abortScanAction.setEnabled(True)
 
         if self.spectrum:
             self.plot.removeSpectrum(self.spectrum)
@@ -385,14 +417,14 @@ class MainWindow(QtGui.QMainWindow):
 
     def abortScan(self):
         if not self._isScanning:
-            self.enableActions()
+            self.updateActions()
             return
         self._isScanning = False
         self.spectrometer.sigWavelength.disconnect(
                                             self._scanPart1)
         self.lockin.sigAdjustAndGetOutputsFinished.disconnect(
                                             self._scanPart2)
-        self.enableActions()
+        self.updateActions()
 
     def configDiverters(self):
         # Get the config parameters
@@ -417,8 +449,10 @@ class MainWindow(QtGui.QMainWindow):
         self.lockin.thread.wait()
         self.spectrometer.thread.wait()
 
-        self.spectrometer = Spectrometer()
-        self.lockin = Lockin()
+        self.updateActions()
+        self.configPortsAction.setEnabled(True)
+        self.initSpectrometer()
+        self.initLockin()
 
     def configLockin(self):
         # Get the config parameters
@@ -465,17 +499,16 @@ class MainWindow(QtGui.QMainWindow):
         dirpath, filename = os.path.split(filepath)
         settings.setValue('last_directory', dirpath)
         self.setWindowTitle(u'SimplePL - {}'.format(filename))
-        spectrum = openMeasuredSpectrum(filepath)
+        spectrum = MeasuredSpectrum.open(filepath)
         # Check if the system response removed is included.
         # If not, ask user to select a system response file.
-        print spectrum.intensity
-        if not len(spectrum.intensity):
+        if not len(spectrum.getSignal()):
             sysres_filepath, _filter = QtGui.QFileDialog.getOpenFileName(
                                         parent=self,
                                         caption='Open a system response file')
             if not sysres_filepath:
                 return
-            spectrum = openMeasuredSpectrum(filepath, sysres_filepath)
+            spectrum = MeasuredSpectrum.open(filepath, sysres_filepath)
 
         # remove the previous measured spectrum
         if self.spectrum:
