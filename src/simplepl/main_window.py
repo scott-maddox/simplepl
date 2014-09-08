@@ -69,7 +69,7 @@ class MainWindow(QtGui.QMainWindow):
         self.initLockin()
 
         # Initialize the current instrument values
-        sysResPath = self._settings.value('sysResPath', '')
+        sysResPath = self._settings.value('sysResPath')
         self._sysresParser = SimplePLParser(None, sysResPath)
         self._grating = None
         self._filter = None
@@ -476,7 +476,7 @@ class MainWindow(QtGui.QMainWindow):
                                 dir=sysResPath)
         if not sysResPath:
             return
-        sysResPath = self._settings.value('sysResPath', None)
+        self._settings.setValue('sysResPath', sysResPath)
         self._sysresParser = SimplePLParser(None, sysResPath)
 
     def configLockin(self):

@@ -43,7 +43,11 @@ class SimplePLParser(object):
             self._sysresParser = SimplePLParser(sysresFilepath)
             try:
                 self._sysresParser.parse()
+                log.debug('Opened system response file: {}'
+                          ''.format(sysresFilepath))
             except:
+                log.debug('Unable to open system response file: {}'
+                          ''.format(sysresFilepath))
                 self._sysresParser = None
 
     def getSysRes(self, wavelength):
