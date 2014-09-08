@@ -28,20 +28,27 @@ import numpy as np
 
 
 class SimplePLParser(object):
-    def __init__(self, filepath, sysresFilepath=None):
+    def __init__(self, filepath=None, sysresFilepath=None):
         '''
+        filepath : string
+            the PL filepath
         sysresFilepath : string
             the system response filepath. If this is provided it overrides
-            the system response used by the LabView program.
+            the system response used in the saved file (if possible).
         '''
         self.filepath = filepath
         self.sysresFilepath = sysresFilepath
         self._sysresParser = None
         if sysresFilepath is not None:
             self._sysresParser = SimplePLParser(sysresFilepath)
-            self._sysresParser.parse()
+            try:
+                self._sysresParser.parse()
+            except:
+                self._sysresParser = None
 
-    def get_sysres(self, wavelength):
+    def getSysRes(self, wavelength):
+        if self._sysresParser is None:
+            return np.nan
         i = np.searchsorted(self._sysresParser.wavelength, wavelength)
         return self._sysresParser.rawSignal[i]
 
@@ -123,7 +130,7 @@ class SimplePLParser(object):
             self.wavelength.append(wavelength)
             self.rawSignal.append(raw)
             if self.sysresFilepath is not None:
-                sysres = self.get_sysres(wavelength)
+                sysres = self.getSysRes(wavelength)
                 sysresrem = raw / sysres
                 self.signal.append(sysresrem)
 
@@ -141,7 +148,7 @@ class SimplePLParser(object):
             self.rawSignal.append(raw)
             self.phase.append(phase)
             if self.sysresFilepath is not None:
-                sysres = self.get_sysres(wavelength)
+                sysres = self.getSysRes(wavelength)
                 signal = raw / sysres
                 self.signal.append(signal)
 
@@ -172,7 +179,7 @@ class SimplePLParser(object):
             self.rawSignal.append(float(values[2]))
             self.phase.append(float(values[3]))
             if self.sysresFilepath is not None:
-                sysres = self.get_sysres(self.wavelength[-1])
+                sysres = self.getSysRes(self.wavelength[-1])
                 signal = self.rawSignal[-1] / sysres
                 self.signal.append(signal)
             else:

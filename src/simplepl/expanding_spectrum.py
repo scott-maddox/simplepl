@@ -48,7 +48,7 @@ class ExpandingSpectrum(MeasuredSpectrum):
             log.warning("No sysrem response provided. Using raw value.")
             signal = rawSignal
         else:
-            sysres = self.sysresParser.get_sysres(wavelength)
+            sysres = self.sysresParser.getSysRes(wavelength)
             signal = rawSignal / sysres
         self._wavelength.append(wavelength)
         self._signal.append(signal)

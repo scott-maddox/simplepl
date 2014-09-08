@@ -69,8 +69,8 @@ class MainWindow(QtGui.QMainWindow):
         self.initLockin()
 
         # Initialize the current instrument values
-        self._sysresParser = SimplePLParser(None,
-                '2014-05-01 sysres - InSb detector - 2.5 mm slits - N2.txt')
+        sysResPath = self._settings.value('sysResPath', '')
+        self._sysresParser = SimplePLParser(None, sysResPath)
         self._grating = None
         self._filter = None
         self._wavelength = None
@@ -169,7 +169,7 @@ class MainWindow(QtGui.QMainWindow):
 
         # Calculate the signal by dividing by the system response,
         # and update that too
-        sysres = self._sysresParser.get_sysres(self._wavelength)
+        sysres = self._sysresParser.getSysRes(self._wavelength)
         self.updateSignal(rawSignal / sysres)
 
     @QtCore.Slot(float)
@@ -263,6 +263,11 @@ class MainWindow(QtGui.QMainWindow):
         self.configPortsAction.setToolTip('Configure the instrument ports')
         self.configPortsAction.triggered.connect(self.configPorts)
 
+        self.configSysResAction = QtGui.QAction('System &Response', self)
+        self.configSysResAction.setStatusTip('Configure the system response')
+        self.configSysResAction.setToolTip('Configure the system response')
+        self.configSysResAction.triggered.connect(self.configSysRes)
+
         self.configLockinAction = QtGui.QAction('&Lock-in', self)
         self.configLockinAction.setStatusTip(
                                             'Configure the lock-in amplifier')
@@ -303,6 +308,7 @@ class MainWindow(QtGui.QMainWindow):
         scanMenu.addAction(self.abortScanAction)
         configMenu = menubar.addMenu('&Config')
         configMenu.addAction(self.configPortsAction)
+        configMenu.addAction(self.configSysResAction)
         configMenu.addAction(self.configLockinAction)
         configMenu.addAction(self.configDivertersAction)
         configMenu.addAction(self.configGratingsAndFiltersAction)
@@ -363,6 +369,7 @@ class MainWindow(QtGui.QMainWindow):
         self.startScanAction.setEnabled(all)
         self.abortScanAction.setEnabled(scanning)
         self.configPortsAction.setEnabled(notScanning)
+        self.configSysResAction.setEnabled(notScanning)
         self.configLockinAction.setEnabled(lockin and notScanning)
         self.configDivertersAction.setEnabled(spec and notScanning)
         self.configGratingsAndFiltersAction.setEnabled(spec and notScanning)
@@ -462,6 +469,16 @@ class MainWindow(QtGui.QMainWindow):
         self.initSpectrometer()
         self.initLockin()
 
+    def configSysRes(self):
+        sysResPath = self._settings.value('sysResPath', None)
+        sysResPath, _filter = QtGui.QFileDialog.getOpenFileName(parent=self,
+                                caption='Open a system response file',
+                                dir=sysResPath)
+        if not sysResPath:
+            return
+        sysResPath = self._settings.value('sysResPath', None)
+        self._sysresParser = SimplePLParser(None, sysResPath)
+
     def configLockin(self):
         # Get the config parameters
         timeConstantIndex, reserveModeIndex, inputLineFilterIndex, accepted = (
@@ -476,36 +493,33 @@ class MainWindow(QtGui.QMainWindow):
         GratingsAndFiltersConfigDialog.getAdvancedConfig(self.spectrometer, parent=self)
 
     def applyDivertersConfig(self):
-        settings = QtCore.QSettings()
-        entranceMirror = settings.value('spectrometer/entrance_mirror',
+        entranceMirror = self._settings.value('spectrometer/entrance_mirror',
                                         'Front')
-        exitMirror = settings.value('spectrometer/exit_mirror',
+        exitMirror = self._settings.value('spectrometer/exit_mirror',
                                     'Side')
         self.spectrometer.setEntranceMirror(entranceMirror)
         self.spectrometer.setExitMirror(exitMirror)
 
     def applyLockinConfig(self):
-        settings = QtCore.QSettings()
-        timeConstantIndex = settings.value('lockin/time_constant_index',
+        timeConstantIndex = self._settings.value('lockin/time_constant_index',
                                            9)  # 300 ms default
-        reserveModeIndex = settings.value('lockin/reserve_mode_index',
+        reserveModeIndex = self._settings.value('lockin/reserve_mode_index',
                                           0)  # High reserve default
-        inputLineFilterIndex = settings.value('lockin/input_line_filter_index',
+        inputLineFilterIndex = self._settings.value('lockin/input_line_filter_index',
                                               3)  # both filters default
         self.lockin.setTimeConstantIndex(timeConstantIndex)
         self.lockin.setReserveModeIndex(reserveModeIndex)
         self.lockin.setInputLineFilterIndex(inputLineFilterIndex)
 
     def openFile(self):
-        settings = QtCore.QSettings()
-        dirpath = settings.value('last_directory', '')
+        dirpath = self._settings.value('last_directory', '')
         filepath, _filter = QtGui.QFileDialog.getOpenFileName(parent=self,
                                 caption='Open a PL spectrum file',
                                 dir=dirpath)
         if not filepath:
             return
         dirpath, filename = os.path.split(filepath)
-        settings.setValue('last_directory', dirpath)
+        self._settings.setValue('last_directory', dirpath)
         self.setWindowTitle(u'SimplePL - {}'.format(filename))
         spectrum = MeasuredSpectrum.open(filepath)
         # Check if the system response removed is included.
@@ -537,8 +551,7 @@ class MainWindow(QtGui.QMainWindow):
             self.saveFile()
 
     def saveFile(self):
-        settings = QtCore.QSettings()
-        dirpath = settings.value('last_directory', '')
+        dirpath = self._settings.value('last_directory', '')
         filepath, _filter = QtGui.QFileDialog.getSaveFileName(parent=self,
                                 caption='Save the current spectrum',
                                 dir=dirpath,
@@ -546,7 +559,7 @@ class MainWindow(QtGui.QMainWindow):
         if not filepath:
             return
         dirpath, _filename = os.path.split(filepath)
-        settings.setValue('last_directory', dirpath)
+        self._settings.setValue('last_directory', dirpath)
         self.spectrum.save(filepath)
         self._scanSaved = True
 
