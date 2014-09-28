@@ -196,6 +196,8 @@ class MainWindow(QtGui.QMainWindow):
 
     def initUI(self):
         self.setWindowTitle('SimplePL')
+        from .resources.icons import logoIcon
+        self.setWindowIcon(logoIcon)
 
         self.aboutAction = QtGui.QAction('&About', self)
         self.aboutAction.triggered.connect(self.about)

@@ -29,6 +29,7 @@ from setuptools import setup, find_packages
 # read in __version__
 exec(open('src/simplepl/version.py').read())
 
+
 # If on Mac OS X, build an app bundle using py2app
 if sys.platform == 'darwin':
     # extra arguments for mac py2app to associate files
@@ -54,7 +55,7 @@ if sys.platform == 'darwin':
                                  'numpy.linalg',
                                  ],
                        plist=plist,
-                       #iconfile=icons/plotliberator.icns',
+                       iconfile='src/simplepl/resources/icon.icns',
                        )
     extra_options = dict(
                          setup_requires=['py2app'],
@@ -66,7 +67,10 @@ if sys.platform == 'darwin':
 elif sys.platform == 'win32':
     extra_options = dict(
                          setup_requires=['py2exe'],
-                         app=['src/simpelpl/main.py'],
+                         windows = [
+                dict(script='with_gui.py',
+                     icon_resources=[(1, 'src/simplepl/resources/icon.ico')])
+                                    ]
                          )
 else:
     extra_options = dict(
