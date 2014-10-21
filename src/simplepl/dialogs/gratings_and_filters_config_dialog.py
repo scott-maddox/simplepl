@@ -35,7 +35,10 @@ class GratingComboBox(QtGui.QComboBox):
         for i in xrange(spectrometer.getGratingCount()):
             self.addItem(str(i + 1))
         if grating is not None:
-            self.setCurrentIndex(grating - 1)
+            self.setGrating(grating)
+
+    def setGrating(self, v):
+        self.setCurrentIndex(v - 1)
 
 
 class FilterComboBox(QtGui.QComboBox):
@@ -44,7 +47,22 @@ class FilterComboBox(QtGui.QComboBox):
         for i in xrange(spectrometer.getFilterCount()):
             self.addItem(str(i + 1))
         if filter is not None:
-            self.setCurrentIndex(filter - 1)
+            self.setFilter(filter)
+
+    def setFilter(self, v):
+        self.setCurrentIndex(v - 1)
+
+
+class IndexedPushButton(QtGui.QPushButton):
+    indexClicked = QtCore.Signal(int)
+
+    def __init__(self, index, text, parent=None):
+        super(IndexedPushButton, self).__init__(text, parent=None)
+        self.index = index
+        self.clicked.connect(self._clicked)
+
+    def _clicked(self):
+        self.indexClicked.emit(self.index)
 
 
 class GratingsAndFiltersConfigDialog(QtGui.QDialog):
@@ -55,9 +73,6 @@ class GratingsAndFiltersConfigDialog(QtGui.QDialog):
         self.spectrometer = spectrometer
 
         # OK and Cancel buttons
-        self.addRowButton = QtGui.QPushButton('Add Row')
-        self.removeRowButton = QtGui.QPushButton('Remove Row')
-        self.removeRowButton.setEnabled(False)
         self.buttons = QtGui.QDialogButtonBox(
             QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
             QtCore.Qt.Horizontal, self)
@@ -68,66 +83,183 @@ class GratingsAndFiltersConfigDialog(QtGui.QDialog):
         self.grid.addWidget(QtGui.QLabel('Grating'), 0, 1, 1, 1)
         self.grid.addWidget(QtGui.QLabel('Filter'), 0, 2, 1, 1)
         self.rowCount = 1
+        self.index = 0
 
         self.wavelengthSpinBoxes = []
+        self.insertRowButtons = []
+        self.removeRowButtons = []
         self.gratingComboBoxes = []
         self.filterComboBoxes = []
 
         wavelengths, gratings, filters = spectrometer.getConfigs()
-        wavelengthSpinBox = WavelengthSpinBox(wavelengths[0])
-        wavelengthSpinBox.selectAll()
-        self.wavelengthSpinBoxes.append(wavelengthSpinBox)
-        self.grid.addWidget(wavelengthSpinBox, self.rowCount, 0, 2, 1)
-        self.rowCount += 2
+
+        self.appendWavelengthRow(wavelengths[0])
         for wavelength, grating, filter in izip(wavelengths[1:], gratings,
                                                 filters):
-            self.addRow(wavelength, grating, filter)
+            self.appendGratingRow(grating, filter)
+            self.appendWavelengthRow(wavelength)
+        self.wavelengthSpinBoxes[0].selectAll()
 
         # Connect buttons
-        self.addRowButton.clicked.connect(self.addRow)
-        self.removeRowButton.clicked.connect(self.removeRow)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
         # Layout
         layout = QtGui.QVBoxLayout(self)
         layout.addLayout(self.grid)
-        layout.addWidget(self.addRowButton)
-        layout.addWidget(self.removeRowButton)
         layout.addWidget(self.buttons)
 
-    def addRow(self, wavelength=None, grating=None, filter=None):
+    def appendWavelengthRow(self, wavelength):
         wavelengthSpinBox = WavelengthSpinBox(wavelength)
+        insertRowButton = IndexedPushButton(self.index, '+')
+        removeRowButton = IndexedPushButton(self.index, '-')
+        insertRowButton.indexClicked.connect(self.insertRow)
+        removeRowButton.indexClicked.connect(self.removeRow)
+        self.wavelengthSpinBoxes.append(wavelengthSpinBox)
+        self.insertRowButtons.append(insertRowButton)
+        self.removeRowButtons.append(removeRowButton)
+        self.grid.addWidget(wavelengthSpinBox, self.rowCount, 0, 2, 1)
+        self.grid.addWidget(insertRowButton, self.rowCount, 3, 2, 1)
+        self.grid.addWidget(removeRowButton, self.rowCount, 4, 2, 1)
+        self.rowCount += 1
+        self.updateEnabled()
+
+    def appendGratingRow(self, grating, filter):
         gratingComboBox = GratingComboBox(spectrometer=self.spectrometer,
                                           grating=grating)
         filterComboBox = FilterComboBox(spectrometer=self.spectrometer,
                                         filter=filter)
-
-        self.wavelengthSpinBoxes.append(wavelengthSpinBox)
         self.gratingComboBoxes.append(gratingComboBox)
         self.filterComboBoxes.append(filterComboBox)
+        self.grid.addWidget(gratingComboBox, self.rowCount, 1, 2, 1)
+        self.grid.addWidget(filterComboBox, self.rowCount, 2, 2, 1)
+        self.rowCount += 1
+        self.index += 1
 
-        self.grid.addWidget(wavelengthSpinBox, self.rowCount, 0, 2, 1)
-        self.grid.addWidget(gratingComboBox, self.rowCount - 1, 1, 2, 1)
-        self.grid.addWidget(filterComboBox, self.rowCount - 1, 2, 2, 1)
-        self.rowCount += 2
-        self.removeRowButton.setEnabled(True)
-
-    def removeRow(self):
+    def popWavelengthRow(self):
         wavelengthSpinBox = self.wavelengthSpinBoxes.pop()
+        insertRowButton = self.insertRowButtons.pop()
+        removeRowButton = self.removeRowButtons.pop()
+        insertRowButton.indexClicked.disconnect(self.insertRow)
+        removeRowButton.indexClicked.disconnect(self.removeRow)
+        self.grid.removeWidget(wavelengthSpinBox)
+        self.grid.removeWidget(insertRowButton)
+        self.grid.removeWidget(removeRowButton)
+        wavelengthSpinBox.hide()
+        insertRowButton.hide()
+        removeRowButton.hide()
+        self.rowCount -= 1
+        self.updateEnabled()
+
+    def popGratingRow(self):
         gratingComboBox = self.gratingComboBoxes.pop()
         filterComboBox = self.filterComboBoxes.pop()
-
-        self.grid.removeWidget(wavelengthSpinBox)
         self.grid.removeWidget(gratingComboBox)
         self.grid.removeWidget(filterComboBox)
+        gratingComboBox.hide()
+        filterComboBox.hide()
+        self.rowCount -= 1
+        self.index -= 1
 
-        wavelengthSpinBox.deleteLater()
-        gratingComboBox.deleteLater()
-        filterComboBox.deleteLater()
-        self.rowCount -= 2
-        if self.rowCount == 3:
-            self.removeRowButton.setEnabled(False)
+    def updateEnabled(self):
+        enabled = len(self.wavelengthSpinBoxes) > 2
+        for removeRowButton in self.removeRowButtons:
+            removeRowButton.setEnabled(enabled)
+
+    @QtCore.Slot(int)
+    def insertRow(self, index):
+        wavelengths = [spinBox.value() for spinBox in
+                       self.wavelengthSpinBoxes]
+        gratings = [comboBox.currentIndex() + 1 for comboBox in
+                    self.gratingComboBoxes]
+        filters = [comboBox.currentIndex() + 1 for comboBox in
+                   self.filterComboBoxes]
+        wavelengths.insert(index, wavelengths[index])
+        gratings.insert(index, 1)
+        filters.insert(index, 1)
+
+        # Update the rows
+        for wavelength, wavelengthSpinBox in izip(wavelengths,
+                                                  self.wavelengthSpinBoxes):
+            wavelengthSpinBox.setValue(wavelength)
+        for grating, gratingComboBox in izip(gratings,
+                                                  self.gratingComboBoxes):
+            gratingComboBox.setGrating(grating)
+        for filter, filterComboBox in izip(filters,
+                                                  self.filterComboBoxes):
+            filterComboBox.setFilter(filter)
+
+        # Add the last row
+        self.appendGratingRow(gratings[-1], filters[-1])
+        self.appendWavelengthRow(wavelengths[-1])
+
+    @QtCore.Slot(int)
+    def removeRow(self, index):
+        wavelengths = [spinBox.value() for spinBox in
+                       self.wavelengthSpinBoxes]
+        gratings = [comboBox.currentIndex() + 1 for comboBox in
+                    self.gratingComboBoxes]
+        filters = [comboBox.currentIndex() + 1 for comboBox in
+                   self.filterComboBoxes]
+        wavelengths.pop(index)
+        if index >= len(gratings):
+            gratings.pop()
+            filters.pop()
+        else:
+            gratings.pop(index)
+            filters.pop(index)
+
+        # Update the rows
+        for wavelength, wavelengthSpinBox in izip(wavelengths,
+                                                  self.wavelengthSpinBoxes):
+            wavelengthSpinBox.setValue(wavelength)
+        for grating, gratingComboBox in izip(gratings,
+                                                  self.gratingComboBoxes):
+            gratingComboBox.setGrating(grating)
+        for filter, filterComboBox in izip(filters,
+                                                  self.filterComboBoxes):
+            filterComboBox.setFilter(filter)
+
+        # Remove the last row
+        self.popWavelengthRow()
+        self.popGratingRow()
+
+#     def addRow(self, wavelength=None, grating=None, filter=None):
+#         wavelengthSpinBox = WavelengthSpinBox(wavelength)
+#         insertRowButton = IndexedPushButton('+')
+#         removeRowButton = IndexedPushButton('-')
+#         insertRowButton.clicked.connect(self.insertRow)
+#         removeRowButton.clicked.connect(self.removeRow)
+#         gratingComboBox = GratingComboBox(spectrometer=self.spectrometer,
+#                                           grating=grating)
+#         filterComboBox = FilterComboBox(spectrometer=self.spectrometer,
+#                                         filter=filter)
+# 
+#         self.wavelengthSpinBoxes.append(wavelengthSpinBox)
+#         self.gratingComboBoxes.append(gratingComboBox)
+#         self.filterComboBoxes.append(filterComboBox)
+# 
+#         self.grid.addWidget(wavelengthSpinBox, self.rowCount, 0, 2, 1)
+#         self.grid.addWidget(gratingComboBox, self.rowCount - 1, 1, 2, 1)
+#         self.grid.addWidget(filterComboBox, self.rowCount - 1, 2, 2, 1)
+#         self.rowCount += 2
+#         self.removeRowButton.setEnabled(True)
+# 
+#     def removeRow(self):
+#         wavelengthSpinBox = self.wavelengthSpinBoxes.pop()
+#         gratingComboBox = self.gratingComboBoxes.pop()
+#         filterComboBox = self.filterComboBoxes.pop()
+# 
+#         self.grid.removeWidget(wavelengthSpinBox)
+#         self.grid.removeWidget(gratingComboBox)
+#         self.grid.removeWidget(filterComboBox)
+# 
+#         wavelengthSpinBox.deleteLater()
+#         gratingComboBox.deleteLater()
+#         filterComboBox.deleteLater()
+#         self.rowCount -= 2
+#         if self.rowCount == 3:
+#             self.removeRowButton.setEnabled(False)
 
     @classmethod
     def getAdvancedConfig(cls, spectrometer, parent=None):
