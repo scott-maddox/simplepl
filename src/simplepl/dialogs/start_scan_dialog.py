@@ -56,6 +56,9 @@ class StartScanDialog(QtGui.QDialog):
         self.delaySpinBox.setSingleStep(.1)
         self.delaySpinBox.setValue(delay)
 
+        self.timeEstimateLabel = QtGui.QLabel('')
+        self._updateTimeEstimate()
+
         layout = QtGui.QVBoxLayout(self)
         form = QtGui.QFormLayout()
         form.addRow('Wavelength Start ({})'
@@ -68,6 +71,7 @@ class StartScanDialog(QtGui.QDialog):
                     ''.format(self.stepSpinBox.getUnits()),
                     self.stepSpinBox)
         form.addRow('Delay (s)', self.delaySpinBox)
+        form.addRow('Minimum Scan Time:', self.timeEstimateLabel)
         layout.addLayout(form)
 
         # OK and Cancel buttons
@@ -76,9 +80,29 @@ class StartScanDialog(QtGui.QDialog):
             QtCore.Qt.Horizontal, self)
         layout.addWidget(self.buttons)
 
-        # Connect buttons
+        # Connect signals and slots
+        self.startSpinBox.valueChanged.connect(self._updateTimeEstimate)
+        self.stopSpinBox.valueChanged.connect(self._updateTimeEstimate)
+        self.stepSpinBox.valueChanged.connect(self._updateTimeEstimate)
+        self.delaySpinBox.valueChanged.connect(self._updateTimeEstimate)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
+
+    @QtCore.Slot()
+    def _updateTimeEstimate(self):
+        start = self.startSpinBox.value()
+        stop = self.stopSpinBox.value()
+        step = self.stepSpinBox.value()
+        delay = self.delaySpinBox.value()
+        print start, stop, step, delay
+
+        # Update time estimate
+        t = int(abs(float(stop - start) / step * delay))
+        print t
+        h = t / 3600
+        m = (t - h * 3600) / 60
+        s = t - h * 3600 - m * 60
+        self.timeEstimateLabel.setText('%d h %d m %d s'%(h, m, s))
 
     @classmethod
     def getScanParameters(cls, spectrometer, parent=None):
@@ -95,8 +119,10 @@ class StartScanDialog(QtGui.QDialog):
 
         start = dialog.startSpinBox.value()
         stop = dialog.stopSpinBox.value()
-        step = dialog.stepSpinBox.value()
-        delay = dialog.delaySpinBox.value()
+        step = abs(dialog.stepSpinBox.value())
+        if start > stop:
+            step *= -1
+        delay = abs(dialog.delaySpinBox.value())
 
         # Remember the current values
         settings = QtCore.QSettings()
