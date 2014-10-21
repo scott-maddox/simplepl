@@ -27,6 +27,7 @@ from PySide import QtGui, QtCore
 
 # local imports
 from ..wavelength_spin_box import WavelengthSpinBox
+from ..vertical_scroll_area import VerticalScrollArea
 
 
 class GratingComboBox(QtGui.QComboBox):
@@ -60,6 +61,7 @@ class IndexedPushButton(QtGui.QPushButton):
         super(IndexedPushButton, self).__init__(text, parent=None)
         self.index = index
         self.clicked.connect(self._clicked)
+        self.setMaximumSize(30, 30)
 
     def _clicked(self):
         self.indexClicked.emit(self.index)
@@ -77,8 +79,13 @@ class GratingsAndFiltersConfigDialog(QtGui.QDialog):
             QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
             QtCore.Qt.Horizontal, self)
 
+        # Scroll area for the SpectrumWidgets
+        scrollWidget = QtGui.QWidget()
+        scroll = VerticalScrollArea()
+        scroll.setWidget(scrollWidget)
+
         # SpinBoxes and ComboBoxes
-        self.grid = QtGui.QGridLayout()
+        self.grid = QtGui.QGridLayout(scrollWidget)
         self.grid.addWidget(QtGui.QLabel('Wavelength (nm)'), 0, 0, 1, 1)
         self.grid.addWidget(QtGui.QLabel('Grating'), 0, 1, 1, 1)
         self.grid.addWidget(QtGui.QLabel('Filter'), 0, 2, 1, 1)
@@ -106,7 +113,7 @@ class GratingsAndFiltersConfigDialog(QtGui.QDialog):
 
         # Layout
         layout = QtGui.QVBoxLayout(self)
-        layout.addLayout(self.grid)
+        layout.addWidget(scroll, stretch=1)
         layout.addWidget(self.buttons)
 
     def appendWavelengthRow(self, wavelength):
@@ -224,43 +231,6 @@ class GratingsAndFiltersConfigDialog(QtGui.QDialog):
         self.popWavelengthRow()
         self.popGratingRow()
 
-#     def addRow(self, wavelength=None, grating=None, filter=None):
-#         wavelengthSpinBox = WavelengthSpinBox(wavelength)
-#         insertRowButton = IndexedPushButton('+')
-#         removeRowButton = IndexedPushButton('-')
-#         insertRowButton.clicked.connect(self.insertRow)
-#         removeRowButton.clicked.connect(self.removeRow)
-#         gratingComboBox = GratingComboBox(spectrometer=self.spectrometer,
-#                                           grating=grating)
-#         filterComboBox = FilterComboBox(spectrometer=self.spectrometer,
-#                                         filter=filter)
-# 
-#         self.wavelengthSpinBoxes.append(wavelengthSpinBox)
-#         self.gratingComboBoxes.append(gratingComboBox)
-#         self.filterComboBoxes.append(filterComboBox)
-# 
-#         self.grid.addWidget(wavelengthSpinBox, self.rowCount, 0, 2, 1)
-#         self.grid.addWidget(gratingComboBox, self.rowCount - 1, 1, 2, 1)
-#         self.grid.addWidget(filterComboBox, self.rowCount - 1, 2, 2, 1)
-#         self.rowCount += 2
-#         self.removeRowButton.setEnabled(True)
-# 
-#     def removeRow(self):
-#         wavelengthSpinBox = self.wavelengthSpinBoxes.pop()
-#         gratingComboBox = self.gratingComboBoxes.pop()
-#         filterComboBox = self.filterComboBoxes.pop()
-# 
-#         self.grid.removeWidget(wavelengthSpinBox)
-#         self.grid.removeWidget(gratingComboBox)
-#         self.grid.removeWidget(filterComboBox)
-# 
-#         wavelengthSpinBox.deleteLater()
-#         gratingComboBox.deleteLater()
-#         filterComboBox.deleteLater()
-#         self.rowCount -= 2
-#         if self.rowCount == 3:
-#             self.removeRowButton.setEnabled(False)
-
     @classmethod
     def getAdvancedConfig(cls, spectrometer, parent=None):
         '''
@@ -275,14 +245,24 @@ class GratingsAndFiltersConfigDialog(QtGui.QDialog):
         filters : list of ints of length (N - 1)
         '''
         dialog = cls(spectrometer=spectrometer, parent=parent)
-        result = dialog.exec_()
-        accepted = (result == QtGui.QDialog.Accepted)
+        while True:
+            result = dialog.exec_()
+            accepted = (result == QtGui.QDialog.Accepted)
 
-        if not accepted:
-            return
+            if not accepted:
+                return
 
-        wavelengths = [spinBox.value() for spinBox in
-                       dialog.wavelengthSpinBoxes]
+            wavelengths = [spinBox.value() for spinBox in
+                           dialog.wavelengthSpinBoxes]
+
+            if wavelengths == sorted(wavelengths):
+                break
+            else:
+                QtGui.QMessageBox.warning(dialog, 'Wrong order',
+                                          'Please write the wavelengths in '
+                                          'ascending order, from top to '
+                                          'bottom.')
+
         gratings = [comboBox.currentIndex() + 1 for comboBox in
                     dialog.gratingComboBoxes]
         filters = [comboBox.currentIndex() + 1 for comboBox in
@@ -291,3 +271,14 @@ class GratingsAndFiltersConfigDialog(QtGui.QDialog):
         spectrometer.setConfigs(wavelengths, gratings, filters)
 
         return wavelengths, gratings, filters
+
+if __name__ == '__main__':
+    app = QtGui.QApplication([])
+    class FakeSpectrometer(object):
+        def getGratingCount(self):
+            return 9
+        def getFilterCount(self):
+            return 9
+    s = FakeSpectrometer()
+    GratingsAndFiltersConfigDialog.getAdvancedConfig(self.spectrometer)
+    app.exec_()
