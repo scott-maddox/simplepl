@@ -519,6 +519,13 @@ class MainWindow(QtGui.QMainWindow):
     def generateVeuszFile(self):
         GenerateVeuszFileDialog(self).exec_()
 
+    def getSystemResponseFilePath(self):
+        sysResPath = self._settings.value('sysResPath', None)
+        sysResPath, _filter = QtGui.QFileDialog.getOpenFileName(parent=self,
+                                caption='Open a system response file',
+                                dir=sysResPath)
+        return sysResPath
+
     def openFile(self):
         dirpath = self._settings.value('last_directory', '')
         filepath, _filter = QtGui.QFileDialog.getOpenFileName(parent=self,
@@ -532,13 +539,20 @@ class MainWindow(QtGui.QMainWindow):
         spectrum = MeasuredSpectrum.open(filepath)
         # Check if the system response removed is included.
         # If not, ask user to select a system response file.
-        if not len(spectrum.getSignal()):
-            sysres_filepath, _filter = QtGui.QFileDialog.getOpenFileName(
-                                        parent=self,
-                                        caption='Open a system response file')
-            if not sysres_filepath:
-                return
-            spectrum = MeasuredSpectrum.open(filepath, sysres_filepath)
+        if not spectrum.getSignal():
+            result = QtGui.QMessageBox.question(self,
+                                                'Provide system response?',
+                                                'The selected file does not '
+                                                'appear to have a system-'
+                                                'response-removed column. '
+                                                'Would you like to provide a '
+                                                'system response?',
+                                                QtGui.QMessageBox.Yes,
+                                                QtGui.QMessageBox.No)
+            if result == QtGui.QMessageBox.Yes:
+                sysres_filepath = self.getSystemResponseFilePath()
+                if sysres_filepath:
+                    spectrum = MeasuredSpectrum.open(filepath, sysres_filepath)
 
         # remove the previous measured spectrum
         if self.spectrum:
