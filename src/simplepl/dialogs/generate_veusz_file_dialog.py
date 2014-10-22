@@ -56,6 +56,13 @@ class GenerateVeuszFileDialog(QtGui.QDialog):
                                                     'File Path'])
         self.tableWidget.setVerticalHeaderLabels(['+'])
 
+        # Spin box for virtical spacing of normalized scans
+        self.verticalSpacingSpinBox = QtGui.QDoubleSpinBox()
+        self.verticalSpacingSpinBox.setDecimals(1)
+        self.verticalSpacingSpinBox.setRange(0., 1.1)
+        self.verticalSpacingSpinBox.setSingleStep(.1)
+        self.verticalSpacingSpinBox.setValue(0.5)
+
         # Connect signals and slots
         self.tableWidget.cellDoubleClicked.connect(
                                               self._handleCellDoubleClicked)
@@ -73,10 +80,15 @@ class GenerateVeuszFileDialog(QtGui.QDialog):
             buttonsLayout.addWidget(generateButton)
             buttonsLayout.addWidget(cancelButton)
 
+        hbox = QtGui.QHBoxLayout()
+        hbox.addWidget(QtGui.QLabel('Vertical spacing of normalized scans:'))
+        hbox.addWidget(self.verticalSpacingSpinBox)
+
         layout = QtGui.QVBoxLayout()
         layout.addWidget(QtGui.QLabel('Double-click on a cell to add PL '
                                       'files:'))
         layout.addWidget(self.tableWidget, stretch=1)
+        layout.addLayout(hbox)
         layout.addLayout(buttonsLayout)
         self.setLayout(layout)
 
@@ -264,8 +276,8 @@ class GenerateVeuszFileDialog(QtGui.QDialog):
         if not save_filepath.endswith('.vsz'):
             save_filepath += '.vsz'
 
-        # Fenerate and output the file
-        vertical_spacing = 1. / 2
+        # Generate and output the file
+        vertical_spacing = self.verticalSpacingSpinBox.value()
         with open(save_filepath, 'w') as f:
             for pl_filepath, prefix in zip(pl_filepaths, prefixes):
 
