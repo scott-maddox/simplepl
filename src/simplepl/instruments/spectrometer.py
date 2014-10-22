@@ -34,10 +34,10 @@ class FilterChanger(QtCore.QObject):
         self._filterWheelLock = lock
         self._filterWheel = filterWheel
         self.thread = QtCore.QThread()
-        self.thread.started.connect(self._started)
+        self.thread.started.connect(self._init)
         self.moveToThread(self.thread)
 
-    def _started(self):
+    def _init(self):
         with QtCore.QMutexLocker(self._filterWheelLock):
             self._filterWheel.set_filter(self._targetFilter)
             self.result = self._filterWheel.get_filter()
@@ -58,14 +58,6 @@ class Spectrometer(QtCore.QObject):
     thread. The results are emitted in other Signals, which are specified
     in the doc strings.
     '''
-    _sigGetGrating = QtCore.Signal()
-    _sigSetGrating = QtCore.Signal(int)
-    _sigGetFilter = QtCore.Signal()
-    _sigSetFilter = QtCore.Signal(int)
-    _sigGetWavelength = QtCore.Signal()
-    _sigSetWavelength = QtCore.Signal(float)
-    _sigSetEntranceMirror = QtCore.Signal(str)
-    _sigSetExitMirror = QtCore.Signal(str)
 
     sigException = QtCore.Signal(Exception)
     sigInitialized = QtCore.Signal()
@@ -86,25 +78,18 @@ class Spectrometer(QtCore.QObject):
         self._filterWheelLock = QtCore.QMutex()
         self._filterWheel = None
         self._settings = None
+
+        # Initialized cached values
         self._grating = None
         self._filter = None
-
-        # Connect signals/slots for asynchronous methods
-        self._sigGetGrating.connect(self._getGrating)
-        self._sigSetGrating.connect(self._setGrating)
-        self._sigGetFilter.connect(self._getFilter)
-        self._sigSetFilter.connect(self._setFilter)
-        self._sigGetWavelength.connect(self._getWavelength)
-        self._sigSetWavelength.connect(self._setWavelength)
-        self._sigSetEntranceMirror.connect(self._setEntranceMirror)
-        self._sigSetExitMirror.connect(self._setExitMirror)
+        self._wavelength = None
 
         # Start the thread
         self.thread = QtCore.QThread()
         self.moveToThread(self.thread)
-        self.thread.started.connect(self._started)
+        self.thread.started.connect(self._init)
 
-    def _started(self):
+    def _init(self):
         # Initialize QSettings object
         self._settings = QtCore.QSettings()
 
@@ -143,9 +128,9 @@ class Spectrometer(QtCore.QObject):
         self.sigInitialized.emit()
 
         # Initialize the statusbar
-        self._getGrating()
-        self._getFilter()
-        self._getWavelength()
+        self.getGrating()
+        self.getFilter()
+        self.getWavelength()
 
     def getGratingCount(self):
         return 9
@@ -154,112 +139,103 @@ class Spectrometer(QtCore.QObject):
         return 6
 
     @QtCore.Slot()
-    def _getGrating(self):
+    def getGrating(self):
         if self._spectrometer is None:
             return
+        if self._grating is not None:
+            return self._grating
         with QtCore.QMutexLocker(self._spectrometerLock):
             result = self._spectrometer.get_grating()
         self._grating = result
         self.sigGrating.emit(result)
         return result
 
-    def getGrating(self):
-        '''
-        Gets the current grating index.
-
-        Emits
-        -----
-            sigGrating(int)
-        '''
-        self._sigGetGrating.emit()
-
     @QtCore.Slot(int)
-    def _setGrating(self, i):
+    def setGrating(self, i):
+        self._grating = None
         self.sigChangingGrating.emit()
         with QtCore.QMutexLocker(self._spectrometerLock):
             self._spectrometer.set_grating(i)
-        self._getGrating()  # read and emit the resulting grating
-
-    def setGrating(self, i):
-        '''
-        Goes to the specified grating index.
-
-        Emits
-        -----
-            sigGrating(int)
-            sigWavelength(float)
-        '''
-        self._sigSetGrating.emit(i)
+        self.getGrating()  # read and emit the resulting grating
 
     @QtCore.Slot()
-    def _getFilter(self):
+    def getFilter(self):
         if self._spectrometer is None:
             return
+        if self._filter is not None:
+            return self._filter
         with QtCore.QMutexLocker(self._filterWheelLock):
             result = self._filterWheel.get_filter()
         self._filter = result
         self.sigFilter.emit(result)
         return result
 
-    def getFilter(self):
-        '''
-        Gets the current filter index.
-
-        Emits
-        -----
-            sigFilter(int)
-        '''
-        self._sigGetFilter.emit()
-
     @QtCore.Slot(int)
-    def _setFilter(self, i):
+    def setFilter(self, i):
+        self._filter = None
         self.sigChangingFilter.emit()
         with QtCore.QMutexLocker(self._filterWheelLock):
             self._filterWheel.set_filter(i)
-        self._getFilter()  # read and emit the resulting filter
-
-    def setFilter(self, i):
-        '''
-        Goes to the specified filter index.
-
-        Emits
-        -----
-            sigFilter(int)
-        '''
-        self._sigSetFilter.emit(i)
+        self.getFilter()  # read and emit the resulting filter
 
     @QtCore.Slot(int, int)
-    def _setGratingAndFilter(self, grating, filter):
+    def setGratingAndFilter(self, grating, filter):
+        self._filter = None
         filterChanger = FilterChanger(filter,
                                       self._filterWheel,
                                       self._filterWheelLock)
         self.sigChangingFilter.emit()
         filterChanger.start()
-        self._setGrating(grating)
+        self.setGrating(grating)
         filterChanger.wait()
         self._filter = filterChanger.result
         self.sigFilter.emit(filterChanger.result)
 
     @QtCore.Slot()
-    def _getWavelength(self):
-        if self._spectrometer is None:
-            return
-        with QtCore.QMutexLocker(self._spectrometerLock):
-            result = self._spectrometer.get_wavelength()
-        self.sigWavelength.emit(result)
-        return result
-
     def getWavelength(self):
         '''
-        Gets the current wavelength in nm.
+        Returns the current wavelength in nm.
 
         Emits
         -----
             sigWavelength(float)
         '''
-        self._sigGetWavelength.emit()
+        if self._spectrometer is None:
+            return
+        if self._wavelength is not None:
+            return self._wavelength
+        with QtCore.QMutexLocker(self._spectrometerLock):
+            result = self._spectrometer.get_wavelength()
+        self._wavelength = result
+        self.sigWavelength.emit(result)
+        return result
+
+    @QtCore.Slot(float)
+    def setWavelength(self, wavelength):
+        self._wavelength = None
+        self.sigChangingWavelength.emit()
+
+        # Change the grating and/or filter, if needed
+        targetGrating, targetFilter = self._getTargetGratingAndFilter(
+                                                                wavelength)
+        if self.getGrating() != targetGrating:
+            if self.getFilter() != targetFilter:
+                self.setGratingAndFilter(targetGrating, targetFilter)
+            else:
+                self.setGrating(targetGrating)
+        elif self.getFilter() != targetFilter:
+            self.setFilter(targetFilter)
+
+        # Go to the specified target wavelength
+        with QtCore.QMutexLocker(self._spectrometerLock):
+            self._spectrometer.goto(wavelength)
+        self.getWavelength()  # read and emit the resulting wavelength
 
     def _getTargetGratingAndFilter(self, wavelength):
+        '''
+        Gets the target grating and filter for a given wavelength from
+        the config.
+        '''
         wavelengths, gratings, filters = self.getConfigs()
         if wavelength < wavelengths[0]:
             raise ValueError('wavelengths shorter than {} are not supported'
@@ -270,29 +246,6 @@ class Spectrometer(QtCore.QObject):
         else:
             raise ValueError('wavelengths longer than {} are not supported'
                              ''.format(wavelengths[i + 1]))
-
-    @QtCore.Slot(float)
-    def _setWavelength(self, wavelength):
-        # Change the grating and/or filter, if needed
-        targetGrating, targetFilter = self._getTargetGratingAndFilter(
-                                                                wavelength)
-
-        if self._grating is None:
-            self._getGrating()
-        if self._filter is None:
-            self._getFilter()
-        if self._grating != targetGrating and self._filter != targetFilter:
-            self._setGratingAndFilter(targetGrating, targetFilter)
-        if self._grating != targetGrating:
-            self.setGrating(targetGrating)
-        if self._filter != targetFilter:
-            self.setFilter(targetFilter)
-
-        # Go to the specified target wavelength
-        self.sigChangingWavelength.emit()
-        with QtCore.QMutexLocker(self._spectrometerLock):
-            self._spectrometer.goto(wavelength)
-        self._getWavelength()  # read and emit the resulting wavelength
 
     def getConfigs(self):
         '''
@@ -352,18 +305,7 @@ class Spectrometer(QtCore.QObject):
         self._settings.endArray()
         return wavelength
 
-    def setWavelength(self, wavelength):
-        '''
-        Goes to the specified wavelength in wavelength. Automatically
-        sets the grating and filter as configured in the settings.
-
-        Emits
-        -----
-            sigWavelength(float)
-        '''
-        self._sigSetWavelength.emit(wavelength)
-
-    def _setEntranceMirror(self, s):
+    def setEntranceMirror(self, s):
         if s == 'Front':
             with QtCore.QMutexLocker(self._spectrometerLock):
                 self._spectrometer.set_entrance_mirror_front()
@@ -373,7 +315,7 @@ class Spectrometer(QtCore.QObject):
         else:
             raise ValueError('Unkown entrance mirror position: {}'.format(s))
 
-    def _setExitMirror(self, s):
+    def setExitMirror(self, s):
         if s == 'Front':
             with QtCore.QMutexLocker(self._spectrometerLock):
                 self._spectrometer.set_exit_mirror_front()
@@ -382,9 +324,3 @@ class Spectrometer(QtCore.QObject):
                 self._spectrometer.set_exit_mirror_side()
         else:
             raise ValueError('Unkown exit mirror position: {}'.format(s))
-
-    def setEntranceMirror(self, s):
-        self._sigSetEntranceMirror.emit(s)
-
-    def setExitMirror(self, s):
-        self._sigSetExitMirror.emit(s)

@@ -37,7 +37,7 @@ class LockinConfigDialog(QtGui.QDialog):
                                                   3))  # both filters default
 
         self.timeConstantComboBox = QtGui.QComboBox()
-        for text in lockin.getTimeConstantOptions():
+        for text in lockin.getTimeConstantLabelsList():
             self.timeConstantComboBox.addItem(text)
         self.timeConstantComboBox.setCurrentIndex(timeConstantIndex)
 
