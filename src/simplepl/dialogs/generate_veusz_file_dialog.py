@@ -74,7 +74,7 @@ class GenerateVeuszFileDialog(QtGui.QDialog):
             buttonsLayout.addWidget(cancelButton)
 
         layout = QtGui.QVBoxLayout()
-        layout.addWidget(QtGui.QLabel('Double-click to on a cell to add PL '
+        layout.addWidget(QtGui.QLabel('Double-click on a cell to add PL '
                                       'files:'))
         layout.addWidget(self.tableWidget, stretch=1)
         layout.addLayout(buttonsLayout)
@@ -132,7 +132,7 @@ class GenerateVeuszFileDialog(QtGui.QDialog):
         if not pl_filepaths:
             self.raise_()
             self.activateWindow()
-            return
+            return []
         dirpath, _filename = os.path.split(pl_filepaths[0])
         self.settings.setValue('last_open_directory', dirpath)
 
