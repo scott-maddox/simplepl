@@ -27,6 +27,7 @@ from PySide import QtGui, QtCore
 import pyqtgraph as pg
 
 # local imports
+from .scanners import Scanner, GoToer
 from .simple_pl_parser import SimplePLParser
 from .spectra_plot_item import SpectraPlotItem
 from .measured_spectrum import MeasuredSpectrum
@@ -57,7 +58,7 @@ class MainWindow(QtGui.QMainWindow):
         self._signal = None
         self._rawSignal = None
         self._phase = None
-        self._wavelengthTarget = None
+        self.scanner = None
 
         # Internal flags
         self._scanSaved = True
@@ -72,7 +73,6 @@ class MainWindow(QtGui.QMainWindow):
         # until the instruments are initialized
         self._spectrometerInitilized = False
         self._lockinInitilized = False
-        self._isScanning = False
         self.updateActions()
 
         # Initialize the instruments
@@ -115,11 +115,15 @@ class MainWindow(QtGui.QMainWindow):
     @QtCore.Slot()
     def spectrometerInitialized(self):
         self._spectrometerInitilized = True
+        if self._spectrometerInitilized and self._lockinInitilized:
+            self.updateStatus('Idle.')
         self.updateActions()
 
     @QtCore.Slot()
     def lockinInitialized(self):
         self._lockinInitilized = True
+        if self._spectrometerInitilized and self._lockinInitilized:
+            self.updateStatus('Idle.')
         self.updateActions()
 
     @QtCore.Slot()
@@ -134,6 +138,10 @@ class MainWindow(QtGui.QMainWindow):
     @QtCore.Slot()
     def changingWavelength(self):
         self.wavelengthLabel.setText('Wavelength=?')
+
+    @QtCore.Slot(str)
+    def updateStatus(self, status):
+        self.statusLabel.setText(status)
 
     @QtCore.Slot(float)
     def updateGrating(self, grating):
@@ -334,12 +342,14 @@ class MainWindow(QtGui.QMainWindow):
         aboutMenu.addAction(self.aboutAction)
 
         statusBar = self.statusBar()
+        self.statusLabel = QtGui.QLabel('Initializing...')
         self.gratingLabel = QtGui.QLabel('Grating=?')
         self.filterLabel = QtGui.QLabel('Filter=?')
         self.wavelengthLabel = QtGui.QLabel('Wavelength=?')
         self.signalLabel = QtGui.QLabel('Signal=?')
         self.rawSignalLabel = QtGui.QLabel('Raw Signal=?')
         self.phaseLabel = QtGui.QLabel('Phase=?')
+        statusBar.addWidget(self.statusLabel, stretch=1)
         statusBar.addWidget(self.gratingLabel, stretch=1)
         statusBar.addWidget(self.filterLabel, stretch=1)
         statusBar.addWidget(self.wavelengthLabel, stretch=1)
@@ -370,8 +380,12 @@ class MainWindow(QtGui.QMainWindow):
                                         parent=self)
         if wavelength is None:
             return
-        self._wavelengthTarget = wavelength
-        self.spectrometer.setWavelength(self._wavelengthTarget)
+
+        self.scanner = GoToer(self.spectrometer, wavelength)
+        self.scanner.statusChanged.connect(self.updateStatus)
+        self.scanner.started.connect(self.updateActions)
+        self.scanner.finished.connect(self.updateActions)
+        self.scanner.start()
 
     def viewSemilog(self):
         logMode = self.viewSemilogAction.isChecked()
@@ -382,7 +396,7 @@ class MainWindow(QtGui.QMainWindow):
         spec = self._spectrometerInitilized
         lockin = self._lockinInitilized
         both = spec and lockin
-        scanning = self._isScanning
+        scanning = bool(self.scanner) and self.scanner.isScanning()
         notScanning = not scanning
         all = both and notScanning
         self.openAction.setEnabled(notScanning)
@@ -397,71 +411,42 @@ class MainWindow(QtGui.QMainWindow):
         self.configDivertersAction.setEnabled(spec and notScanning)
         self.configGratingsAndFiltersAction.setEnabled(spec and notScanning)
 
-    @QtCore.Slot(float)
-    def _scanPart1(self, wavelength):
-        delay = float(self._settings.value('scan/delay', 0.5))
-        self.lockin.adjustAndGetOutputs(delay)
-
-    @QtCore.Slot(float, float)
-    def _scanPart2(self, rawSignal, phase):
-        # Update the spectrum
-        self.spectrum.append(self._wavelength, rawSignal, phase)
-
-        # Check if the scan is finished
-        stop = float(self._settings.value('scan/stop', 5500.))
-        step = float(self._settings.value('scan/step', 10.))
-        self._wavelengthTarget += step
-        if (step > 0 and self._wavelengthTarget > stop or
-            step < 0 and self._wavelengthTarget < stop):
-            # If it is, disconnect the signals and slots
-            self.abortScan()
-            return
-        else:
-            # If it isn't, go to the next wavelength
-            self.wavelengthLabel.setText('Wavelength=?')
-            self.spectrometer.setWavelength(self._wavelengthTarget)
-
     def startScan(self):
+        if self.scanner and self.scanner.isScanning():
+            return  # a scan is already running
+
         if not self._scanSaved:
             self.savePrompt()  # Prompt the user to save the scan
         self._scanSaved = False
 
-        # Apply the spectrometer and lockin config's
-        self.applyDivertersConfig()
-        self.applyLockinConfig()
-
-        # Get the scan parameters
+        # Get the scan parameters from the user
         params = StartScanDialog.getScanParameters(
                                         spectrometer=self.spectrometer,
                                         parent=self)
         if params is None:
-            return
+            return  # cancel
 
-        start, _stop, _step, _delay = params
+        start, stop, step, delay = params
 
-        self._isScanning = True
-        self.updateActions()
-
+        # Remove the old spectrum from the plot, and add a new one
         if self.spectrum:
             self.plot.removeSpectrum(self.spectrum)
         self.spectrum = ExpandingSpectrum(self._sysresParser)
         self.plot.addSpectrum(self.spectrum)
-        self.spectrometer.sigWavelength.connect(self._scanPart1)
-        self.lockin.sigAdjustAndGetOutputsFinished.connect(self._scanPart2)
 
-        self._wavelengthTarget = start
-        self.spectrometer.setWavelength(self._wavelengthTarget)
+        self.scanner = Scanner(self.spectrometer, self.lockin, self.spectrum,
+                               start, stop, step, delay)
+        self.scanner.statusChanged.connect(self.updateStatus)
+        self.scanner.started.connect(self.updateActions)
+        self.scanner.finished.connect(self.updateActions)
+        self.scanner.start()
 
     def abortScan(self):
-        if not self._isScanning:
+        if not self.scanner.isScanning():
             self.updateActions()
             return
-        self._isScanning = False
-        self.spectrometer.sigWavelength.disconnect(
-                                            self._scanPart1)
-        self.lockin.sigAdjustAndGetOutputsFinished.disconnect(
-                                            self._scanPart2)
-        self.updateActions()
+        self.updateStatus('Aborting scan...')
+        self.scanner.abort()
 
     def configDiverters(self):
         # Get the config parameters
@@ -513,25 +498,6 @@ class MainWindow(QtGui.QMainWindow):
 
     def configGratingsAndFilters(self):
         GratingsAndFiltersConfigDialog.getAdvancedConfig(self.spectrometer, parent=self)
-
-    def applyDivertersConfig(self):
-        entranceMirror = self._settings.value('spectrometer/entrance_mirror',
-                                        'Front')
-        exitMirror = self._settings.value('spectrometer/exit_mirror',
-                                    'Side')
-        self.spectrometer.setEntranceMirror(entranceMirror)
-        self.spectrometer.setExitMirror(exitMirror)
-
-    def applyLockinConfig(self):
-        timeConstantIndex = int(self._settings.value('lockin/time_constant_index',
-                                                     9))  # 300 ms default
-        reserveModeIndex = int(self._settings.value('lockin/reserve_mode_index',
-                                                    0))  # High reserve default
-        inputLineFilterIndex = int(self._settings.value('lockin/input_line_filter_index',
-                                                        3))  # both filters default
-        self.lockin.setTimeConstantIndex(timeConstantIndex)
-        self.lockin.setReserveModeIndex(reserveModeIndex)
-        self.lockin.setInputLineFilterIndex(inputLineFilterIndex)
 
     def openFile(self):
         dirpath = self._settings.value('last_directory', '')
