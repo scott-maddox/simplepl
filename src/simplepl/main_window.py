@@ -40,6 +40,7 @@ from .dialogs.gratings_and_filters_config_dialog import (
                                             GratingsAndFiltersConfigDialog)
 from .dialogs.set_wavelength_dialog import SetWavelengthDialog
 from .dialogs.ports_config_dialog import PortsConfigDialog
+from .dialogs.generate_veusz_file_dialog import GenerateVeuszFileDialog
 from .version import __version__
 
 
@@ -307,6 +308,15 @@ class MainWindow(QtGui.QMainWindow):
         self.configGratingsAndFiltersAction.triggered.connect(
                                         self.configGratingsAndFilters)
 
+        self.generateVeuszFileAction = QtGui.QAction('Generate &Veusz File',
+                                                     self)
+        self.generateVeuszFileAction.setStatusTip(
+                                        'Generate a Veusz file')
+        self.generateVeuszFileAction.setToolTip(
+                                        'Generate a Veusz file')
+        self.generateVeuszFileAction.triggered.connect(
+                                        self.generateVeuszFile)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(self.openAction)
@@ -330,6 +340,8 @@ class MainWindow(QtGui.QMainWindow):
         configMenu.addAction(self.configLockinAction)
         configMenu.addAction(self.configDivertersAction)
         configMenu.addAction(self.configGratingsAndFiltersAction)
+        toolsMenu = menubar.addMenu('&Tools')
+        toolsMenu.addAction(self.generateVeuszFileAction)
         aboutMenu = menubar.addMenu('&About')
         aboutMenu.addAction(self.aboutAction)
 
@@ -512,7 +524,11 @@ class MainWindow(QtGui.QMainWindow):
         self.lockin.setInputLineFilterIndex(inputLineFilterIndex)
 
     def configGratingsAndFilters(self):
-        GratingsAndFiltersConfigDialog.getAdvancedConfig(self.spectrometer, parent=self)
+        GratingsAndFiltersConfigDialog.getAdvancedConfig(self.spectrometer,
+                                                         parent=self)
+
+    def generateVeuszFile(self):
+        GenerateVeuszFileDialog(self).exec_()
 
     def applyDivertersConfig(self):
         entranceMirror = self._settings.value('spectrometer/entrance_mirror',
