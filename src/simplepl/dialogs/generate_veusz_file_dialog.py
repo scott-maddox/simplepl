@@ -38,6 +38,7 @@ from simplepl.simple_pl_parser import SimplePLParser
 class GenerateVeuszFileDialog(QtGui.QDialog):
     def __init__(self, parent=None):
         super(GenerateVeuszFileDialog, self).__init__(parent)
+        self.setWindowTitle('Generate Veusz File')
         self.setModal(True)
 
         # Get a settings object
