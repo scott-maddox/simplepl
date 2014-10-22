@@ -46,6 +46,7 @@ class FW102C(object):
 #                                   stopbits=serial.STOPBITS_ONE,
 #                                   timeout=timeout)
         self.current_filter = 1
+        time.sleep(SLEEP_TIME * 100)
 
     def __read(self):
         r = self._inst.readline()
