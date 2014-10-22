@@ -417,7 +417,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(spec and notScanning)
         self.startScanAction.setEnabled(all)
         self.abortScanAction.setEnabled(scanning)
-        self.configPortsAction.setEnabled(notScanning)
+        self.configPortsAction.setEnabled(not both or notScanning)
         self.configSysResAction.setEnabled(notScanning)
         self.configLockinAction.setEnabled(lockin and notScanning)
         self.configDivertersAction.setEnabled(spec and notScanning)
@@ -476,6 +476,12 @@ class MainWindow(QtGui.QMainWindow):
         if ports is None:
             return
 
+        # Reset the status
+        self.updateStatus('Reinitializing...')
+        self._lockinInitilized = False
+        self._spectrometerInitilized = False
+        self.updateActions()
+
         # Restart the lockin and spectrometer
         self.lockin.thread.quit()
         self.spectrometer.thread.quit()
@@ -483,8 +489,6 @@ class MainWindow(QtGui.QMainWindow):
         self.lockin.thread.wait()
         self.spectrometer.thread.wait()
 
-        self.updateActions()
-        self.configPortsAction.setEnabled(True)
         self.initSpectrometer()
         self.initLockin()
 
