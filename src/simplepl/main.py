@@ -35,12 +35,15 @@ if __name__ == '__main__':
         os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     import simplepl
     # This doesn't work with py2app:
-    #assert os.path.dirname(simplepl.__file__) == os.path.dirname(__file__)
+    # assert os.path.dirname(simplepl.__file__) == os.path.dirname(__file__)
 from simplepl.exception_handling import install_excepthook
-from simplepl.main_window import MainWindow
 
 
 def run(debug, simulate):
+    # This is needed for pyqtgraph to function smoothly:
+    QtGui.QApplication.setGraphicsSystem("raster")
+
+    # Start the app
     app = QtGui.QApplication([])
 
     # Set up QSettings
@@ -56,13 +59,59 @@ def run(debug, simulate):
         logging.basicConfig(level=logging.DEBUG)
     install_excepthook()
 
-    # Create main window
-    w = MainWindow()
-    w.show()
-    w.activateWindow()
-    w.raise_()
-
+    runner = AppRunner(debug, simulate)
+    QtCore.QTimer.singleShot(0, runner.run)
     app.exec_()
+
+
+def makeSplashLogo():
+    '''Make a splash screen logo.'''
+    border = 16
+    xw, yw = 512 + 16, 512 + 16
+    pix = QtGui.QPixmap(xw, yw)
+    pix.fill()
+    p = QtGui.QPainter(pix)
+
+    # draw logo on pixmap
+    logo = QtGui.QPixmap(QtGui.QImage('resources/icon_256.png'))
+#     p.drawPixmap(xw / 2 - logo.width() / 2, border, logo)
+    p.drawPixmap(xw / 2 - logo.width() / 2, yw / 2 - logo.height() / 2, logo)
+
+#     # add copyright text
+#     doc = qt4.QTextDocument()
+#     doc.setPageSize( qt4.QSizeF(xw, yw - 3*border - logo.height()) )
+#     f = qt4.qApp.font()
+#     f.setPointSize(14)
+#     doc.setDefaultFont(f)
+#     doc.setDefaultTextOption( qt4.QTextOption(qt4.Qt.AlignCenter) )
+#     doc.setHtml(splashcopyr % utils.version())
+#     p.translate(0, 2*border + logo.height())
+#     doc.drawContents(p)
+    p.end()
+    return pix
+
+
+class AppRunner(QtCore.QObject):
+    '''
+    QObject to run application. This provides an event loop, so we can
+    have a splash screen while importing, etc.'''
+
+    def __init__(self, debug, simulate):
+        super(AppRunner, self).__init__()
+
+        self.splash = QtGui.QSplashScreen(makeSplashLogo())
+        self.splash.show()
+        self.splash.raise_()
+        self.splash.activateWindow()
+
+    def run(self):
+        from simplepl.main_window import MainWindow
+        # Create main window
+        self.w = MainWindow()
+        self.splash.finish(self.w)
+        self.w.show()
+        self.w.raise_()
+        self.w.activateWindow()
 
 if sys.platform != 'win32':
     from single_process import single_process

@@ -38,6 +38,7 @@ class SpectraPro2500i(object):
     def __init__(self, port=0, timeout=5.):
         self.nm = 0.
         self.grating = 1
+        time.sleep(SLEEP_TIME * 100)
         #self._inst = serial.Serial(port,
         #                           baudrate=9600,
         #                           bytesize=serial.EIGHTBITS,
