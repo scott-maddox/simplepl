@@ -40,7 +40,7 @@ from .dialogs.lockin_config_dialog import LockinConfigDialog
 from .dialogs.gratings_and_filters_config_dialog import (
                                             GratingsAndFiltersConfigDialog)
 from .dialogs.set_wavelength_dialog import SetWavelengthDialog
-from .dialogs.ports_config_dialog import PortsConfigDialog
+from .dialogs.config_instruments_dialog import ConfigInstrumentsDialog
 from .dialogs.generate_veusz_file_dialog import GenerateVeuszFileDialog
 from .version import __version__
 
@@ -59,6 +59,8 @@ class MainWindow(QtGui.QMainWindow):
         self._signal = None
         self._rawSignal = None
         self._phase = None
+        self.spectrometer = None
+        self.lockin = None
         self.scanner = None
 
         # Internal flags
@@ -70,15 +72,16 @@ class MainWindow(QtGui.QMainWindow):
         # Initialize GUI stuff
         self.initUI()
 
-        # Diable all actions except for configuring the ports,
+        # Disable all actions except for configuring the ports,
         # until the instruments are initialized
         self._spectrometerInitilized = False
         self._lockinInitilized = False
         self.updateActions()
 
         # Initialize the instruments
-        self.initSpectrometer()
-        self.initLockin()
+        if bool(self._settings.value('autoConnect')):
+            self.initSpectrometer()
+            self.initLockin()
 
         # Initialize the current instrument values
         sysResPath = self._settings.value('sysResPath')
@@ -235,32 +238,37 @@ class MainWindow(QtGui.QMainWindow):
         self.closeAction.setShortcut('Ctrl+W')
         self.closeAction.triggered.connect(self.close)
 
-        self.viewWavelengthAction = QtGui.QAction('&Wavelength', self)
-        self.viewWavelengthAction.setStatusTip('Plot against Wavelength')
-        self.viewWavelengthAction.setToolTip('Plot against Wavelength')
-        self.viewWavelengthAction.setShortcut('Ctrl+Shift+W')
-        self.viewWavelengthAction.triggered.connect(self.viewWavelength)
-        self.viewWavelengthAction.setCheckable(True)
-        self.viewWavelengthAction.setChecked(True)
+        self.viewClearPlotAction = QtGui.QAction('&Clear Plot', self)
+        self.viewClearPlotAction.setStatusTip('Clear the plot')
+        self.viewClearPlotAction.setToolTip('Clear the plot')
+        self.viewClearPlotAction.triggered.connect(self.clearPlot)
 
-        self.viewEnergyAction = QtGui.QAction('&Energy', self)
-        self.viewEnergyAction.setStatusTip('Plot against Energy')
-        self.viewEnergyAction.setToolTip('Plot against Energy')
-        self.viewEnergyAction.setShortcut('Ctrl+Shift+e')
-        self.viewEnergyAction.triggered.connect(self.viewEnergy)
-        self.viewEnergyAction.setCheckable(True)
+        self.axesWavelengthAction = QtGui.QAction('&Wavelength', self)
+        self.axesWavelengthAction.setStatusTip('Plot against Wavelength')
+        self.axesWavelengthAction.setToolTip('Plot against Wavelength')
+        self.axesWavelengthAction.setShortcut('Ctrl+Shift+W')
+        self.axesWavelengthAction.triggered.connect(self.axesWavelength)
+        self.axesWavelengthAction.setCheckable(True)
+        self.axesWavelengthAction.setChecked(True)
 
-        self.viewSemilogAction = QtGui.QAction('Semi-&log', self)
-        self.viewSemilogAction.setStatusTip('Plot the log of the y-axis')
-        self.viewSemilogAction.setToolTip('Plot the log of the y-axis')
-        self.viewSemilogAction.setShortcut('Ctrl+Shift+L')
-        self.viewSemilogAction.changed.connect(self.viewSemilog)
-        self.viewSemilogAction.setCheckable(True)
-        self.viewSemilogAction.setChecked(False)
+        self.axesEnergyAction = QtGui.QAction('&Energy', self)
+        self.axesEnergyAction.setStatusTip('Plot against Energy')
+        self.axesEnergyAction.setToolTip('Plot against Energy')
+        self.axesEnergyAction.setShortcut('Ctrl+Shift+e')
+        self.axesEnergyAction.triggered.connect(self.axesEnergy)
+        self.axesEnergyAction.setCheckable(True)
+
+        self.axesSemilogAction = QtGui.QAction('Semi-&log', self)
+        self.axesSemilogAction.setStatusTip('Plot the log of the y-axis')
+        self.axesSemilogAction.setToolTip('Plot the log of the y-axis')
+        self.axesSemilogAction.setShortcut('Ctrl+Shift+L')
+        self.axesSemilogAction.changed.connect(self.axesSemilog)
+        self.axesSemilogAction.setCheckable(True)
+        self.axesSemilogAction.setChecked(False)
 
         group = QtGui.QActionGroup(self)
-        group.addAction(self.viewWavelengthAction)
-        group.addAction(self.viewEnergyAction)
+        group.addAction(self.axesWavelengthAction)
+        group.addAction(self.axesEnergyAction)
 
         self.gotoWavelengthAction = QtGui.QAction('&Go to wavelength', self)
         self.gotoWavelengthAction.setStatusTip('Go to a wavelength')
@@ -281,10 +289,10 @@ class MainWindow(QtGui.QMainWindow):
         self.abortScanAction.triggered.connect(self.abortScan)
         self.abortScanAction.setEnabled(False)
 
-        self.configPortsAction = QtGui.QAction('&Ports', self)
-        self.configPortsAction.setStatusTip('Configure the instrument ports')
-        self.configPortsAction.setToolTip('Configure the instrument ports')
-        self.configPortsAction.triggered.connect(self.configPorts)
+        self.configInstrumentsAction = QtGui.QAction('&Instruments', self)
+        self.configInstrumentsAction.setStatusTip('Configure the instruments')
+        self.configInstrumentsAction.setToolTip('Configure the instruments')
+        self.configInstrumentsAction.triggered.connect(self.configInstruments)
 
         self.configSysResAction = QtGui.QAction('System &Response', self)
         self.configSysResAction.setStatusTip('Configure the system response')
@@ -332,18 +340,21 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu.addAction(self.saveAsAction)
         fileMenu.addAction(self.closeAction)
         viewMenu = menubar.addMenu('&View')
-        viewMenu.addSeparator().setText("X Axis")
-        viewMenu.addAction(self.viewWavelengthAction)
-        viewMenu.addAction(self.viewEnergyAction)
-        viewMenu.addSeparator().setText("Y Axis")
-        viewMenu.addAction(self.viewSemilogAction)
-        self.viewSemilogAction.changed.connect(self.viewSemilog)
+        viewMenu.addSeparator().setText("Spectra")
+        viewMenu.addAction(self.viewClearPlotAction)
+        axesMenu = menubar.addMenu('A&xes')
+        axesMenu.addSeparator().setText("X Axis")
+        axesMenu.addAction(self.axesWavelengthAction)
+        axesMenu.addAction(self.axesEnergyAction)
+        axesMenu.addSeparator().setText("Y Axis")
+        axesMenu.addAction(self.axesSemilogAction)
+        self.axesSemilogAction.changed.connect(self.axesSemilog)
         scanMenu = menubar.addMenu('&Scan')
         scanMenu.addAction(self.gotoWavelengthAction)
         scanMenu.addAction(self.startScanAction)
         scanMenu.addAction(self.abortScanAction)
         configMenu = menubar.addMenu('&Config')
-        configMenu.addAction(self.configPortsAction)
+        configMenu.addAction(self.configInstrumentsAction)
         configMenu.addAction(self.configSysResAction)
         configMenu.addAction(self.configLockinAction)
         configMenu.addAction(self.configDivertersAction)
@@ -379,10 +390,13 @@ class MainWindow(QtGui.QMainWindow):
         self.setMinimumSize(576, 432)
         self.readWindowSettings()
 
-    def viewWavelength(self):
+    def clearPlot(self):
+        self.plot.clear()
+
+    def axesWavelength(self):
         self.plot.setXAxisView('wavelength')
 
-    def viewEnergy(self):
+    def axesEnergy(self):
         self.plot.setXAxisView('energy')
 
     def setWavelength(self):
@@ -399,8 +413,8 @@ class MainWindow(QtGui.QMainWindow):
         self.scanner.finished.connect(self.updateActions)
         self.scanner.start()
 
-    def viewSemilog(self):
-        logMode = self.viewSemilogAction.isChecked()
+    def axesSemilog(self):
+        logMode = self.axesSemilogAction.isChecked()
         if self.plot:
             self.plot.setLogMode(None, logMode)
 
@@ -417,7 +431,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(spec and notScanning)
         self.startScanAction.setEnabled(all)
         self.abortScanAction.setEnabled(scanning)
-        self.configPortsAction.setEnabled(not both or notScanning)
+        self.configInstrumentsAction.setEnabled(not both or notScanning)
         self.configSysResAction.setEnabled(notScanning)
         self.configLockinAction.setEnabled(lockin and notScanning)
         self.configDivertersAction.setEnabled(spec and notScanning)
@@ -442,7 +456,14 @@ class MainWindow(QtGui.QMainWindow):
 
         # Remove the old spectrum from the plot, and add a new one
         if self.spectrum:
-            self.plot.removeSpectrum(self.spectrum)
+            result = QtGui.QMessageBox.question(self,
+                                                'Clear plot?',
+                                                'Do you want to clear the '
+                                                'plot?',
+                                                QtGui.QMessageBox.Yes,
+                                                QtGui.QMessageBox.No)
+            if result == QtGui.QMessageBox.Yes:
+                self.clearPlot()
         self.spectrum = ExpandingSpectrum(self._sysresParser)
         self.plot.addSpectrum(self.spectrum)
 
@@ -470,9 +491,9 @@ class MainWindow(QtGui.QMainWindow):
         self.spectrometer.setEntranceMirror(entranceMirror)
         self.spectrometer.setExitMirror(exitMirror)
 
-    def configPorts(self):
+    def configInstruments(self):
         # Get the ports
-        ports = PortsConfigDialog.getPortsConfig(parent=self)
+        ports = ConfigInstrumentsDialog.getConfig(parent=self)
         if ports is None:
             return
 
@@ -483,11 +504,15 @@ class MainWindow(QtGui.QMainWindow):
         self.updateActions()
 
         # Restart the lockin and spectrometer
-        self.lockin.thread.quit()
-        self.spectrometer.thread.quit()
+        if self.lockin:
+            self.lockin.thread.quit()
+        if self.spectrometer:
+            self.spectrometer.thread.quit()
 
-        self.lockin.thread.wait()
-        self.spectrometer.thread.wait()
+        if self.lockin:
+            self.lockin.thread.wait()
+        if self.spectrometer:
+            self.spectrometer.thread.wait()
 
         self.initSpectrometer()
         self.initLockin()
@@ -633,10 +658,14 @@ class MainWindow(QtGui.QMainWindow):
             if not self._scanSaved:
                 self.abortScan()
                 self.savePrompt()  # Prompt the user to save the scan
-            self.spectrometer.thread.quit()
-            self.lockin.thread.quit()
-            self.spectrometer.thread.wait()
-            self.lockin.thread.wait()
+            if self.spectrometer:
+                self.spectrometer.thread.quit()
+            if self.lockin:
+                self.lockin.thread.quit()
+            if self.spectrometer:
+                self.spectrometer.thread.wait()
+            if self.lockin:
+                self.lockin.thread.wait()
             self.writeWindowSettings()
             event.accept()
         else:

@@ -19,50 +19,66 @@
 #
 #######################################################################
 
+# std lib imports
+import sys
+
 # third party imports
 from PySide import QtGui, QtCore
 
 
-class PortsConfigDialog(QtGui.QDialog):
+class ConfigInstrumentsDialog(QtGui.QDialog):
     def __init__(self, parent=None):
-        super(PortsConfigDialog, self).__init__(parent)
+        super(ConfigInstrumentsDialog, self).__init__(parent)
         self.setModal(True)
 
         settings = QtCore.QSettings()
+        autoConnect = bool(settings.value('autoConnect'))
         lockinPort = settings.value('lockin/port', 'GPIB::8')
         spectrometerPort = int(settings.value('spectrometer/port', 3))
         filterWheelPort = int(settings.value('filterWheel/port', 3))
 
+        self.autoConnectCheckBox = QtGui.QCheckBox()
+        if autoConnect:
+            self.autoConnectCheckBox.setCheckState(QtCore.Qt.Checked)
         self.lockinPortLineEdit = QtGui.QLineEdit()
         self.lockinPortLineEdit.setText(lockinPort)
         self.spectrometerPortSpinBox = QtGui.QSpinBox()
         self.spectrometerPortSpinBox.setValue(spectrometerPort)
         self.filterWheelPortSpinBox = QtGui.QSpinBox()
         self.filterWheelPortSpinBox.setValue(filterWheelPort)
+        connectButton = QtGui.QPushButton('Connect')
+        cancelButton = QtGui.QPushButton('Cancel')
 
+        # Layout
         layout = QtGui.QVBoxLayout(self)
         form = QtGui.QFormLayout()
+        form.addRow('Auto connect on startup', self.autoConnectCheckBox)
         form.addRow('Lock-in Port', self.lockinPortLineEdit)
         form.addRow('Spectrometer Port', self.spectrometerPortSpinBox)
         form.addRow('Filter Wheel Port', self.filterWheelPortSpinBox)
         layout.addLayout(form)
 
         # OK and Cancel buttons
-        self.buttons = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
-            QtCore.Qt.Horizontal, self)
-        layout.addWidget(self.buttons)
+        buttonsLayout = QtGui.QHBoxLayout()
+        buttonsLayout.addStretch(1)
+        if sys.platform == 'darwin':
+            buttonsLayout.addWidget(cancelButton)
+            buttonsLayout.addWidget(connectButton)
+        else:
+            buttonsLayout.addWidget(connectButton)
+            buttonsLayout.addWidget(cancelButton)
+        layout.addLayout(buttonsLayout)
 
         # Connect buttons
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
+        connectButton.clicked.connect(self.accept)
+        cancelButton.clicked.connect(self.reject)
 
     @classmethod
-    def getPortsConfig(cls, parent=None):
+    def getConfig(cls, parent=None):
         '''
-        If accepted, returns (lockinPort, spectrometerPort, filterWheelPort),
-        and changes the corresponding values in the settings. Otherwise,
-        returns None.
+        If accepted, returns (autoConnect, lockinPort, spectrometerPort,
+        filterWheelPort), and changes the corresponding values in the
+        settings. Otherwise, returns None.
         '''
         dialog = cls(parent)
         result = dialog.exec_()
@@ -71,14 +87,20 @@ class PortsConfigDialog(QtGui.QDialog):
         if not accepted:
             return
 
+        autoConnect = dialog.autoConnectCheckBox.checkState()
         lockinPort = dialog.lockinPortLineEdit.text()
         spectrometerPort = dialog.spectrometerPortSpinBox.value()
         filterWheelPort = dialog.filterWheelPortSpinBox.value()
 
         settings = QtCore.QSettings()
+        settings.setValue('autoConnect', autoConnect)
         settings.setValue('lockin/port', lockinPort)
         settings.setValue('spectrometer/port', spectrometerPort)
         settings.setValue('filterWheel/port', filterWheelPort)
         settings.sync()
 
-        return lockinPort, spectrometerPort, filterWheelPort
+        return autoConnect, lockinPort, spectrometerPort, filterWheelPort
+
+if __name__ == '__main__':
+    app = QtGui.QApplication([])
+    ConfigInstrumentsDialog().exec_()

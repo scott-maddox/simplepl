@@ -32,8 +32,10 @@ from simple_pl_parser import SimplePLParser
 
 class MeasuredSpectrum(AbstractSpectrum):
 
-    def __init__(self, wavelength, signal=None, rawSignal=None, phase=None):
-        super(MeasuredSpectrum, self).__init__()
+    def __init__(self,
+                 wavelength=None, signal=None, rawSignal=None, phase=None,
+                 **kwargs):
+        super(MeasuredSpectrum, self).__init__(**kwargs)
         self._wavelength = wavelength
         self._signal = signal
         self._rawSignal = rawSignal

@@ -94,11 +94,9 @@ class StartScanDialog(QtGui.QDialog):
         stop = self.stopSpinBox.value()
         step = self.stepSpinBox.value()
         delay = self.delaySpinBox.value()
-        print start, stop, step, delay
 
         # Update time estimate
         t = int(abs(float(stop - start) / step * delay))
-        print t
         h = t / 3600
         m = (t - h * 3600) / 60
         s = t - h * 3600 - m * 60

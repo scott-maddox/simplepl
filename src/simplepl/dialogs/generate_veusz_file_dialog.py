@@ -435,4 +435,4 @@ To('..')
 
 if __name__ == '__main__':
     app = QtGui.QApplication([])
-    d = GenerateVeuszFileDialog().exec_()
+    GenerateVeuszFileDialog().exec_()
