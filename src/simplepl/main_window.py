@@ -40,7 +40,7 @@ from .dialogs.lockin_config_dialog import LockinConfigDialog
 from .dialogs.gratings_and_filters_config_dialog import (
                                             GratingsAndFiltersConfigDialog)
 from .dialogs.set_wavelength_dialog import SetWavelengthDialog
-from .dialogs.ports_config_dialog import PortsConfigDialog
+from .dialogs.config_instruments_dialog import ConfigInstrumentsDialog
 from .dialogs.generate_veusz_file_dialog import GenerateVeuszFileDialog
 from .version import __version__
 
@@ -59,6 +59,8 @@ class MainWindow(QtGui.QMainWindow):
         self._signal = None
         self._rawSignal = None
         self._phase = None
+        self.spectrometer = None
+        self.lockin = None
         self.scanner = None
 
         # Internal flags
@@ -77,8 +79,9 @@ class MainWindow(QtGui.QMainWindow):
         self.updateActions()
 
         # Initialize the instruments
-        self.initSpectrometer()
-        self.initLockin()
+        if bool(self._settings.value('autoConnect')):
+            self.initSpectrometer()
+            self.initLockin()
 
         # Initialize the current instrument values
         sysResPath = self._settings.value('sysResPath')
@@ -286,10 +289,10 @@ class MainWindow(QtGui.QMainWindow):
         self.abortScanAction.triggered.connect(self.abortScan)
         self.abortScanAction.setEnabled(False)
 
-        self.configPortsAction = QtGui.QAction('&Ports', self)
-        self.configPortsAction.setStatusTip('Configure the instrument ports')
-        self.configPortsAction.setToolTip('Configure the instrument ports')
-        self.configPortsAction.triggered.connect(self.configPorts)
+        self.configInstrumentsAction = QtGui.QAction('&Instruments', self)
+        self.configInstrumentsAction.setStatusTip('Configure the instruments')
+        self.configInstrumentsAction.setToolTip('Configure the instruments')
+        self.configInstrumentsAction.triggered.connect(self.configInstruments)
 
         self.configSysResAction = QtGui.QAction('System &Response', self)
         self.configSysResAction.setStatusTip('Configure the system response')
@@ -351,7 +354,7 @@ class MainWindow(QtGui.QMainWindow):
         scanMenu.addAction(self.startScanAction)
         scanMenu.addAction(self.abortScanAction)
         configMenu = menubar.addMenu('&Config')
-        configMenu.addAction(self.configPortsAction)
+        configMenu.addAction(self.configInstrumentsAction)
         configMenu.addAction(self.configSysResAction)
         configMenu.addAction(self.configLockinAction)
         configMenu.addAction(self.configDivertersAction)
@@ -428,7 +431,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoWavelengthAction.setEnabled(spec and notScanning)
         self.startScanAction.setEnabled(all)
         self.abortScanAction.setEnabled(scanning)
-        self.configPortsAction.setEnabled(not both or notScanning)
+        self.configInstrumentsAction.setEnabled(not both or notScanning)
         self.configSysResAction.setEnabled(notScanning)
         self.configLockinAction.setEnabled(lockin and notScanning)
         self.configDivertersAction.setEnabled(spec and notScanning)
@@ -488,9 +491,9 @@ class MainWindow(QtGui.QMainWindow):
         self.spectrometer.setEntranceMirror(entranceMirror)
         self.spectrometer.setExitMirror(exitMirror)
 
-    def configPorts(self):
+    def configInstruments(self):
         # Get the ports
-        ports = PortsConfigDialog.getPortsConfig(parent=self)
+        ports = ConfigInstrumentsDialog.getConfig(parent=self)
         if ports is None:
             return
 
@@ -501,11 +504,15 @@ class MainWindow(QtGui.QMainWindow):
         self.updateActions()
 
         # Restart the lockin and spectrometer
-        self.lockin.thread.quit()
-        self.spectrometer.thread.quit()
+        if self.lockin:
+            self.lockin.thread.quit()
+        if self.spectrometer:
+            self.spectrometer.thread.quit()
 
-        self.lockin.thread.wait()
-        self.spectrometer.thread.wait()
+        if self.lockin:
+            self.lockin.thread.wait()
+        if self.spectrometer:
+            self.spectrometer.thread.wait()
 
         self.initSpectrometer()
         self.initLockin()
@@ -651,10 +658,14 @@ class MainWindow(QtGui.QMainWindow):
             if not self._scanSaved:
                 self.abortScan()
                 self.savePrompt()  # Prompt the user to save the scan
-            self.spectrometer.thread.quit()
-            self.lockin.thread.quit()
-            self.spectrometer.thread.wait()
-            self.lockin.thread.wait()
+            if self.spectrometer:
+                self.spectrometer.thread.quit()
+            if self.lockin:
+                self.lockin.thread.quit()
+            if self.spectrometer:
+                self.spectrometer.thread.wait()
+            if self.lockin:
+                self.lockin.thread.wait()
             self.writeWindowSettings()
             event.accept()
         else:
