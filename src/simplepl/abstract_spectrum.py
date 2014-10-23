@@ -26,6 +26,10 @@ from PySide import QtCore
 class AbstractSpectrum(QtCore.QObject):
     sigChanged = QtCore.Signal()
 
+    def __init__(self, **kwargs):
+        super(AbstractSpectrum, self).__init__()
+        self._color = kwargs.get('color', None)
+
     def getWavelength(self):
         raise NotImplementedError()
 
@@ -40,3 +44,9 @@ class AbstractSpectrum(QtCore.QObject):
 
     def getEnergy(self):
         raise NotImplementedError()
+
+    def setColor(self, color):
+        self._color = color
+
+    def getColor(self):
+        return self._color

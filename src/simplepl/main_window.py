@@ -442,7 +442,14 @@ class MainWindow(QtGui.QMainWindow):
 
         # Remove the old spectrum from the plot, and add a new one
         if self.spectrum:
-            self.plot.removeSpectrum(self.spectrum)
+            result = QtGui.QMessageBox.question(self,
+                                                'Clear plot?',
+                                                'Do you want to clear the '
+                                                'plot?',
+                                                QtGui.QMessageBox.Yes,
+                                                QtGui.QMessageBox.No)
+            if result == QtGui.QMessageBox.Yes:
+                self.plot.clear()
         self.spectrum = ExpandingSpectrum(self._sysresParser)
         self.plot.addSpectrum(self.spectrum)
 

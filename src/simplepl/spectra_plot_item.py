@@ -56,6 +56,16 @@ class SpectraPlotItem(PlotItem):
         self._signalLines = []
         self._rawSignalLines = []
         self._phaseLines = []
+
+        # Define the color sequence
+        self._colors = [(24, 90, 169),  # blue
+                        (220, 40, 40),  # red
+                        (0, 140, 72),  # green
+                        (100, 44, 145),  # violet
+                        (236, 110, 35),  # orange
+                        ]
+
+        # Setup axis, etc
         self._xAxisView = kwargs.get('xAxisView', 'wavelength')
         self._phaseViewBox = None
         self.showAxis('right')
@@ -74,11 +84,11 @@ class SpectraPlotItem(PlotItem):
         y = self.ctrl.logYCheck.isChecked()
         for i in self.items:
             if hasattr(i, 'setLogMode'):
-                i.setLogMode(x,y)
+                i.setLogMode(x, y)
         self.getAxis('bottom').setLogMode(x)
         self.getAxis('top').setLogMode(x)
         self.getAxis('left').setLogMode(y)
-        #self.getAxis('right').setLogMode(y)  # disable log mode for phase axis
+        # self.getAxis('right').setLogMode(y)  # disable log mode for phase axis
         self.enableAutoRange()
         self.recomputeAverages()
 
@@ -114,8 +124,16 @@ class SpectraPlotItem(PlotItem):
         self._phaseViewBox.linkedViewChanged(self.vb,
                                              self._phaseViewBox.XAxis)
 
-    def getColor(self):
-        return pg.mkColor('b')
+    def getNextColor(self):
+        usedColors = [spectrum.getColor() for spectrum in self._spectra]
+        unusedColors = [color for color in self._colors if
+                        color not in usedColors]
+        if unusedColors:
+            return unusedColors[0]
+
+        useCounts = [usedColors.count(color) for color in usedColors]
+        minUsedColor = usedColors[useCounts.index(min(useCounts))]
+        return minUsedColor
 
     @QtCore.Slot(AbstractSpectrum)
     def removeSpectrum(self, spectrum):
@@ -127,6 +145,11 @@ class SpectraPlotItem(PlotItem):
         self.removeItem(self._signalLines.pop(i))
         self.removeItem(self._rawSignalLines.pop(i))
         self._getPhaseViewBox().removeItem(self._phaseLines.pop(i))
+
+    def clear(self):
+        spectra = self._spectra[:]  # copy the list
+        for spectrum in spectra:
+            self.removeSpectrum(spectrum)
 
     def getX(self, spectrum):
         if self._xAxisView == 'wavelength':
@@ -142,7 +165,9 @@ class SpectraPlotItem(PlotItem):
         if spectrum in self._spectra:
             raise ValueError('spectrum alread in plot')
 
-        signalColor = self.getColor()
+        color = self.getNextColor()
+        spectrum.setColor(color)
+        signalColor = pg.mkColor(color)
         rawSignalColor = signalColor.lighter()
         phaseColor = rawSignalColor.lighter(120)
 

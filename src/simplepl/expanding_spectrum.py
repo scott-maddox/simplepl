@@ -34,8 +34,8 @@ from expanding_buffer import ExpandingBuffer
 
 class ExpandingSpectrum(MeasuredSpectrum):
 
-    def __init__(self, sysresParser=None):
-        super(MeasuredSpectrum, self).__init__()
+    def __init__(self, sysresParser=None, **kwargs):
+        super(ExpandingSpectrum, self).__init__(**kwargs)
         self.sysresParser = sysresParser
         self._wavelength = ExpandingBuffer()
         self._energy = ExpandingBuffer()
