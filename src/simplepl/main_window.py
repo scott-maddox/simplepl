@@ -72,7 +72,7 @@ class MainWindow(QtGui.QMainWindow):
         # Initialize GUI stuff
         self.initUI()
 
-        # Diable all actions except for configuring the ports,
+        # Disable all actions except for configuring the ports,
         # until the instruments are initialized
         self._spectrometerInitilized = False
         self._lockinInitilized = False
