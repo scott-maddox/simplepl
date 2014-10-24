@@ -31,6 +31,7 @@ class BaseScanner(QtCore.QObject):
     started = QtCore.Signal()
     finished = QtCore.Signal()
     statusChanged = QtCore.Signal(str)
+    sigException = QtCore.Signal(Exception)
 
     def __init__(self):
         super(BaseScanner, self).__init__()
@@ -42,7 +43,12 @@ class BaseScanner(QtCore.QObject):
 
     def _started(self):
         self.started.emit()
-        self._scan()
+        try:
+            self._scan()
+        except Exception as e:
+            # Pass the exception to the GUI thread, so that this thread
+            # can quit.
+            self.sigException.emit(e)
         self.thread.quit()
 
     def start(self):

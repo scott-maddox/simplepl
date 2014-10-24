@@ -27,30 +27,30 @@ import random
 
 # third party imports
 import numpy as np
-#import visa
+# import visa
 
 # Serial Poll Status Byte bits
 # The status bits are set to 1 when the event or state described in the
 # tables below has occurred or is present.
-# 
+#
 # bit     name    usage
-# 
+#
 # 0       SCN     No scan in progress (Stop or Done). A Paused scan is
 #                 considered to be in progress.
-#                 
+#
 # 1       IFC     No command execution in progress.
-# 
+#
 # 2       ERR     An enabled bit in the error status byte has been set.
-# 
+#
 # 3       LIA     An enabled bit in the LIA status byte has been set.
-# 
+#
 # 4       MAV     The interface output buffer is non-empty.
-# 
+#
 # 5       ESB     An enabled bit in the standard status byte has
 #                 been set.
-#                 
+#
 # 6       SRQ     SRQ (service request) has occurred.
-# 
+#
 # 7       Unused
 STB_SCN = 1 << 0
 STB_IFC = 1 << 1
@@ -60,7 +60,7 @@ STB_MAV = 1 << 4
 STB_ESB = 1 << 4
 STB_SRQ = 1 << 4
 
-#TODO: read and store R and Theta?
+# TODO: read and store R and Theta?
 class SR830(object):
     time_constant_labels = (u'10 \u03Bcs', u'30 \u03Bcs',
                             u'100 \u03Bcs', u'300 \u03Bcs',
@@ -136,14 +136,14 @@ class SR830(object):
         self.sensitivity = 10
         self.time_constant = 0
 
-        #self._inst = visa.instrument(port)
+        # self._inst = visa.instrument(port)
 
         self._clear()
-        #log.debug('STB: %d'%self._inst.stb)
+        # log.debug('STB: %d'%self._inst.stb)
 
         # Check device identification
-        #id = self._ask('*IDN?').split(',')
-        #if len(id) < 1 or id[1] != 'SR830':
+        # id = self._ask('*IDN?').split(',')
+        # if len(id) < 1 or id[1] != 'SR830':
         #    log.error('Unexpected instrument ID: %s'%(''.join(id)))
         #    raise RuntimeError('Unexpected instrument ID: %s'%(''.join(id)))
 
@@ -151,24 +151,24 @@ class SR830(object):
         self.output_index = 0
         N = 100
         R_noise = np.abs(np.random.normal(1e-6, 1e-7, N))
-        self.R = 1e-4*np.exp(-np.linspace(-5, 5, N)**2) + R_noise
-        self.theta = (np.random.random_sample(N)*1e-3/self.R+180.)%360.-180.
+        self.R = 1e-4 * np.exp(-np.linspace(-5, 5, N) ** 2) + R_noise
+        self.theta = (np.random.random_sample(N) * 1e-3 / self.R + 180.) % 360. - 180.
 
-    #TODO: add checks for the event and error status bytes to
+    # TODO: add checks for the event and error status bytes to
     # _read and _write, and handle events appropriately
     def _read(self):
-        #r = self._inst.read()
+        # r = self._inst.read()
         r = ''
         log.debug("_read: return '%s'", r)
         return r
 
     def _write(self, s):
         log.debug("_write: write('%s')", s)
-        #self._inst.write(s)
+        # self._inst.write(s)
 
     def _ask(self, s):
         log.debug("_ask: ask('%s')", s)
-        #r = self._inst.ask(s)
+        # r = self._inst.ask(s)
         r = ''
         log.debug("_ask: return '%s'", r)
         return r
@@ -178,7 +178,7 @@ class SR830(object):
         Clears the status registers and output buffers.
         '''
         log.debug("_clear: clearing...")
-        #self._inst.clear()
+        # self._inst.clear()
 
     def set_output(self, i):
         '''
@@ -186,7 +186,7 @@ class SR830(object):
             i=0 : RS232
             i=1 : GPIB
         '''
-        self._write('OUTX %d'%i)
+        self._write('OUTX %d' % i)
     def set_rs232_output(self):
         self.set_output(0)
     def set_gpib_output(self):
@@ -194,9 +194,9 @@ class SR830(object):
 
     # Reference and Phase commands
     def set_phase_shift(self, v):
-        self._write('PHAS %.2f'%v)
+        self._write('PHAS %.2f' % v)
     def get_phase_shift(self):
-        #return float(self._ask('PHAS?'))
+        # return float(self._ask('PHAS?'))
         return 0.
 
     def set_reference_source(self, i):
@@ -207,21 +207,21 @@ class SR830(object):
         '''
         if not i in [0, 1]:
             raise ValueError('i must be 0 for external, or 1 for internal')
-        self._write('FMOD %d'%i)
+        self._write('FMOD %d' % i)
     def get_reference_source(self):
         '''
             Gets the reference source.
             i=1 : internal
             i=0 : external
         '''
-        #return int(self._ask('FMOD?'))
+        # return int(self._ask('FMOD?'))
         return 0
 
     def get_reference_frequency(self):
         '''
         Gets the current reference frequency of the internal oscillator.
         '''
-        #return float(self._ask('FREQ?'))
+        # return float(self._ask('FREQ?'))
         return 1000.
     def set_reference_frequency(self, f):
         '''
@@ -231,9 +231,9 @@ class SR830(object):
         The value of f is limited to the range [0.001, 102000], and will be
         rounded to 5 digits or 0.0001 Hz (whichever is greater).
         '''
-        self._write('FREQ %G'%f)
+        self._write('FREQ %G' % f)
 
-#TODO: Test functions below here
+# TODO: Test functions below here
 
     def get_reference_trigger(self):
         '''
@@ -242,7 +242,7 @@ class SR830(object):
             i=1 : TTL rising edge
             i=2 : TTL falling edge
         '''
-        #return int(self._ask('RSLP?'))
+        # return int(self._ask('RSLP?'))
         return 2
     def set_reference_trigger(self, i):
         '''
@@ -253,7 +253,7 @@ class SR830(object):
 
         At frequencies below 1 Ha, a TTL reference must be used.
         '''
-        self._write('RSLP %d'%i)
+        self._write('RSLP %d' % i)
 
     def get_detection_harmonic(self):
         '''
@@ -262,7 +262,7 @@ class SR830(object):
         harmonic of the reference frequency. The resulting harmonic frequency
         must be less than 102 kHz.
         '''
-        #return float(self._ask('HARM?'))
+        # return float(self._ask('HARM?'))
         return 1
     def set_detection_harmonic(self, i):
         '''
@@ -271,21 +271,21 @@ class SR830(object):
         harmonic of the reference frequency. The resulting harmonic frequency
         must be less than 102 kHz.
         '''
-        self._write('HARM %d'%i)
+        self._write('HARM %d' % i)
 
     def get_sine_output_amplitude(self):
         '''
         Gets the amplitude of the sine output in voltage. The value is limited
         to the range [0.004, 5.000], and is rounded to 0.002 V.
         '''
-        #return float(self._ask('SLVL?'))
+        # return float(self._ask('SLVL?'))
         return 1.
     def set_sine_output_amplitude(self, v):
         '''
         Sets the amplitude of the sine output in voltage. The value is limited
         to the range [0.004, 5.000], and is rounded to 0.002 V.
         '''
-        self._write('SLVL %f'%v)
+        self._write('SLVL %f' % v)
 
     # Input filter commands
     def get_input_configuration(self):
@@ -296,7 +296,7 @@ class SR830(object):
             i=2 : I (1 MOhm)
             i=3 : I (100 MOhm)
         '''
-        #return int(self._ask('ISRC?'))
+        # return int(self._ask('ISRC?'))
         return 0
     def set_input_configuration(self, i):
         '''
@@ -312,7 +312,7 @@ class SR830(object):
         sensitivities below 20 nA, changing the sensitivity does not change the
         current gain.
         '''
-        self._write('ISRC %d'%i)
+        self._write('ISRC %d' % i)
 
     def get_input_shield_grounding(self):
         '''
@@ -320,7 +320,7 @@ class SR830(object):
             i=0 : float
             i=1 : ground
         '''
-        #return int(self._ask('IGND?'))
+        # return int(self._ask('IGND?'))
         return 1
     def set_input_shield_grounding(self, i):
         '''
@@ -328,7 +328,7 @@ class SR830(object):
             i=0 : float
             i=1 : ground
         '''
-        self._write('IGND %d'%i)
+        self._write('IGND %d' % i)
 
     def get_input_coupling(self):
         '''
@@ -336,7 +336,7 @@ class SR830(object):
             i=0 : AC
             i=1 : DC
         '''
-        #return int(self._ask('ICPL?'))
+        # return int(self._ask('ICPL?'))
         return 0
     def set_input_coupling(self, i):
         '''
@@ -344,7 +344,7 @@ class SR830(object):
             i=0 : AC
             i=1 : DC
         '''
-        self._write('ICPL %d'%i)
+        self._write('ICPL %d' % i)
 
     def get_input_line_filter(self):
         '''
@@ -354,7 +354,7 @@ class SR830(object):
             i=2 : 2x line notch filter
             i=3 : both notch filters
         '''
-        #return int(self._ask('ILIN?'))
+        # return int(self._ask('ILIN?'))
         return 3
     def set_input_line_filter(self, i):
         '''
@@ -364,7 +364,7 @@ class SR830(object):
             i=2 : 2x line notch filter
             i=3 : both notch filters
         '''
-        self._write('ILIN %d'%i)
+        self._write('ILIN %d' % i)
 
     # Gain and Time constant commands
     def get_sensitivity_index(self):
@@ -398,7 +398,7 @@ class SR830(object):
             i=25 : 500 mV/nA
             i=26 : 1 V/uA
         '''
-        #return int(self._ask('SENS?'))
+        # return int(self._ask('SENS?'))
         return self.sensitivity
 
     def get_sensitivity_voltage(self):
@@ -446,25 +446,25 @@ class SR830(object):
         '''
         i = int(i)
         if i < 0 or i > 26:
-            raise ValueError('Invalid sensitivity index: %d'%i)
-        self._write('SENS %d'%i)
+            raise ValueError('Invalid sensitivity index: %d' % i)
+        self._write('SENS %d' % i)
         self.sensitivity = i
 
     def set_sensitivity_voltage(self, V):
         '''
         Set the sensitivity for detection of the given voltage (in Volts).
         '''
-        i = np.searchsorted(self.sensitivity_voltages, V*1.2)
+        i = np.searchsorted(self.sensitivity_voltages, V * 1.2)
         self.set_sensitivity_index(i)
 
     def set_sensitivity_current(self, I):
         '''
         Set the sensitivity for detection of the given current (in Amps).
         '''
-        i = np.searchsorted(self.sensitivity_currents, I*1.2)
+        i = np.searchsorted(self.sensitivity_currents, I * 1.2)
         self.set_sensitivity_index(i)
 
-    #TODO: fix this to not use the built-in auto gain because it sucks
+    # TODO: fix this to not use the built-in auto gain because it sucks
     # it results in kinks at the transitions.
     def auto_adjust_sensitivity(self):
         '''
@@ -489,10 +489,10 @@ class SR830(object):
             self.set_time_constant_index(ti)
 
     def increment_sensitivity(self):
-        self.set_sensitivity_index(self.get_sensitivity_index()+1)
+        self.set_sensitivity_index(self.get_sensitivity_index() + 1)
 
     def decrement_sensitivity(self):
-        self.set_sensitivity_index(self.get_sensitivity_index()-1)
+        self.set_sensitivity_index(self.get_sensitivity_index() - 1)
 
     def get_reserve_mode(self):
         '''
@@ -501,7 +501,7 @@ class SR830(object):
             i=1 : Normal
             i=2 : Low Noise (minimum)
         '''
-        #return int(self._ask('RMOD?'))
+        # return int(self._ask('RMOD?'))
         return 0
     def set_reserve_mode(self, i):
         '''
@@ -510,7 +510,7 @@ class SR830(object):
             i=1 : Normal
             i=2 : Low Noise (minimum)
         '''
-        self._write('RMOD %d'%i)
+        self._write('RMOD %d' % i)
 
     def get_time_constant_index(self):
         '''
@@ -536,7 +536,7 @@ class SR830(object):
             i=18 : 10 ks
             i=19 : 30 ks
         '''
-        #return int(self._ask('OFLT?'))
+        # return int(self._ask('OFLT?'))
         return self.time_constant
     def set_time_constant_index(self, i):
         '''
@@ -564,8 +564,8 @@ class SR830(object):
         '''
         i = int(i)
         if i < 0 or i > 19:
-            raise ValueError('Invalid time constant index: %d'%i)
-        self._write('OFLT %d'%i)
+            raise ValueError('Invalid time constant index: %d' % i)
+        self._write('OFLT %d' % i)
         self.time_constant = i
 
     def get_time_constant_seconds(self):
@@ -582,7 +582,7 @@ class SR830(object):
             i=2 : 18 dB/oct
             i=3 : 24 dB/oct
         '''
-        #return int(self._ask('OFSL?'))
+        # return int(self._ask('OFSL?'))
         return 3
     def set_filter_slope(self, i):
         '''
@@ -594,10 +594,10 @@ class SR830(object):
         '''
         i = int(i)
         if i < 0 or i > 3:
-            raise ValueError('Invalid filter slope index: %d'%i)
-        self._write('OFSL %d'%i)
+            raise ValueError('Invalid filter slope index: %d' % i)
+        self._write('OFSL %d' % i)
 
-    #TODO: test these to see if 24 db/oct really takes twice
+    # TODO: test these to see if 24 db/oct really takes twice
     # as long to settle. Simply goto the PL peak, block the laser
     # until the signal compeltely dies, then start plotting and
     # unblock the laser. Then watch how long it takes to reach a
@@ -612,69 +612,71 @@ class SR830(object):
         t = self.get_time_constant_seconds()
         i = self.get_filter_slope()
         if i == 0:
-            return t*5
+            return t * 5
         elif i == 1:
-            return t*7
+            return t * 7
         elif i == 2:
-            return t*9
+            return t * 9
         elif i == 3:
-            return t*10
+            return t * 10
         else:
             raise RuntimeError('unexpected execution path')
 
     # Data Transfer commands
     def get_outputs(self):
-        #R, theta = self._ask('SNAP?3,4').split(',')
-        #return float(R), float(theta)
+        # R, theta = self._ask('SNAP?3,4').split(',')
+        # return float(R), float(theta)
         R = self.R[self.output_index]
         theta = self.theta[self.output_index]
         self.output_index += 1
         self.output_index %= self.R.size
         return float(R), float(theta)
 
-    def adjust_and_get_outputs(self, delay=None):
+    def adjust_and_get_outputs(self, delay):
         '''
         Use this to take care of sensitivity adjustments during a scan.
-        If delay is none, the suggested value based on the current
-        time constant and filter slope is used.
-        
+
         Example usage:
-        
+
             delay = sr830.get_time_constant_seconds()*5
             for wavelength in wavelengths:
                 spectrometer.goto(wavelength)
                 R, theta = sr830.adjust_and_get_outputs(delay)
                 output(wavelenth, R, theta)
         '''
-        if delay is None:
-            delay = self.get_suggested_delay()
-        time.sleep(delay/5) # quick adjust
+        time.sleep(delay / 5.)  # quick adjust
         R, theta = self.get_outputs()
         i = self.get_sensitivity_index()
         if self.get_input_configuration() < 2:
             # voltage mode
-            if i > 1 and R < self.sensitivity_voltages[i-1]*.65:
-                self.set_sensitivity_index(i-1)
-                return self.adjust_and_get_outputs(delay)
-            if i < len(self.sensitivity_voltages) and R > self.sensitivity_voltages[i]*.75:
-                self.set_sensitivity_index(i+1)
-                return self.adjust_and_get_outputs(delay)
+            sensitivities = self.sensitivity_voltages
         else:
             # current mode
-            if i > 1 and R < self.sensitivity_currents[i-1]*.65:
-                self.set_sensitivity_index(i-1)
-                return self.adjust_and_get_outputs(delay)
-            if i < len(self.sensitivity_currents) and R > self.sensitivity_currents[i]*.75:
-                self.set_sensitivity_index(i+1)
-                return self.adjust_and_get_outputs(delay)
+            sensitivities = self.sensitivity_currents
 
-        # helps remove kinks
-        time.sleep(delay)
-        log.debug('get_outputs: return %g, %g'%(R, theta))
-        return R, theta
+        if R < sensitivities[i - 1] * .65:
+            if i == 0:
+                raise IOError('lock-in sensitivity cannot be lowered '
+                              'any further')
+            else:
+                self.set_sensitivity_index(i - 1)
+                return self.adjust_and_get_outputs(delay)
+        elif R > sensitivities[i] * .75:
+            if i == 26:
+                raise IOError('lock-in sensitivity cannot be raised '
+                              'any further')
+            else:
+                self.set_sensitivity_index(i + 1)
+                return self.adjust_and_get_outputs(delay)
+        else:
+            # helps remove kinks
+            time.sleep(delay)
+            R, theta = self.get_outputs()
+#             raise IOError('simulated IOError')
+            return self.get_outputs()
 
     def get_noise(self):
-        raise NotImplementedError() #TODO
+        raise NotImplementedError()  # TODO
 
 if __name__ == "__main__":
     # enable DEBUG output

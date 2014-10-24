@@ -116,6 +116,12 @@ class MainWindow(QtGui.QMainWindow):
     def lockinException(self, e):
         raise e
 
+    @QtCore.Slot(Exception)
+    def scannerException(self, e):
+        self.scanner.wait()
+        self.updateStatus('Scan failed.')
+        raise e
+
     @QtCore.Slot()
     def spectrometerInitialized(self):
         self._spectrometerInitilized = True
@@ -455,6 +461,7 @@ class MainWindow(QtGui.QMainWindow):
         self.scanner.statusChanged.connect(self.updateStatus)
         self.scanner.started.connect(self.updateActions)
         self.scanner.finished.connect(self.updateActions)
+        self.scanner.sigException.connect(self.scannerException)
         self.scanner.start()
 
     def axesSemilog(self):
@@ -516,6 +523,7 @@ class MainWindow(QtGui.QMainWindow):
         self.scanner.statusChanged.connect(self.updateStatus)
         self.scanner.started.connect(self.updateActions)
         self.scanner.finished.connect(self.updateActions)
+        self.scanner.sigException.connect(self.scannerException)
         self.scanner.start()
 
     def abortScan(self):
