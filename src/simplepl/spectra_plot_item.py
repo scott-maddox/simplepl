@@ -79,6 +79,19 @@ class SpectraPlotItem(PlotItem):
         for spectrum in spectra:
             self.addSpectrum(spectrum)
 
+    def setSignalEnabled(self, b):
+        for line in self._signalLines:
+            line.setEnabled(b)
+            #TODO: make this hide/unhide
+
+    def setRawSignalEnabled(self, b):
+        for line in self._rawSignalLines:
+            line.setEnabled(b)
+
+    def setPhaseEnabled(self, b):
+        for line in self._phaseLines:
+            line.setEnabled(b)
+
     def updateLogMode(self):
         x = self.ctrl.logXCheck.isChecked()
         y = self.ctrl.logYCheck.isChecked()

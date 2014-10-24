@@ -238,6 +238,29 @@ class MainWindow(QtGui.QMainWindow):
         self.closeAction.setShortcut('Ctrl+W')
         self.closeAction.triggered.connect(self.close)
 
+        self.viewSignal = QtGui.QAction('&Signal', self)
+        self.viewSignal.setStatusTip('Plot the signal with system '
+                                     'response removed')
+        self.viewSignal.setToolTip('Plot the signal with system '
+                                   'response removed')
+        self.viewSignal.toggled.connect(self.viewSignalToggled)
+        self.viewSignal.setCheckable(True)
+        self.viewSignal.setChecked(True)
+
+        self.viewRawSignal = QtGui.QAction('&Raw Signal', self)
+        self.viewRawSignal.setStatusTip('Plot the raw signal')
+        self.viewRawSignal.setToolTip('Plot the raw signal')
+        self.viewRawSignal.toggled.connect(self.viewRawSignalToggled)
+        self.viewRawSignal.setCheckable(True)
+        self.viewRawSignal.setChecked(False)
+
+        self.viewPhase = QtGui.QAction('&Phase', self)
+        self.viewPhase.setStatusTip('Plot the phase')
+        self.viewPhase.setToolTip('Plot the phase')
+        self.viewPhase.toggled.connect(self.viewPhaseToggled)
+        self.viewPhase.setCheckable(True)
+        self.viewPhase.setChecked(False)
+
         self.viewClearPlotAction = QtGui.QAction('&Clear Plot', self)
         self.viewClearPlotAction.setStatusTip('Clear the plot')
         self.viewClearPlotAction.setToolTip('Clear the plot')
@@ -340,6 +363,9 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu.addAction(self.saveAsAction)
         fileMenu.addAction(self.closeAction)
         viewMenu = menubar.addMenu('&View')
+        viewMenu.addAction(self.viewSignal)
+        viewMenu.addAction(self.viewRawSignal)
+        viewMenu.addAction(self.viewPhase)
         viewMenu.addSeparator().setText("Spectra")
         viewMenu.addAction(self.viewClearPlotAction)
         axesMenu = menubar.addMenu('A&xes')
@@ -383,12 +409,30 @@ class MainWindow(QtGui.QMainWindow):
         view = pg.GraphicsLayoutWidget()
         self.setCentralWidget(view)
         self.plot = SpectraPlotItem(xaxis='wavelength')
+        self.plot.setSignalEnabled(True)
+        self.plot.setRawSignalEnabled(False)
+        self.plot.setPhaseEnabled(False)
         view.addItem(self.plot, 0, 0)
         self.setCentralWidget(view)
 
         self.setWindowTitle('SimplePL')
         self.setMinimumSize(576, 432)
         self.readWindowSettings()
+
+    @QtCore.Slot(bool)
+    def viewSignalToggled(self, b):
+        if self.plot:
+            self.plot.setSignalEnabled(b)
+
+    @QtCore.Slot(bool)
+    def viewRawSignalToggled(self, b):
+        if self.plot:
+            self.plot.setRawSignalEnabled(b)
+
+    @QtCore.Slot(bool)
+    def viewPhaseToggled(self, b):
+        if self.plot:
+            self.plot.setPhaseEnabled(b)
 
     def clearPlot(self):
         self.plot.clear()
@@ -564,7 +608,7 @@ class MainWindow(QtGui.QMainWindow):
         spectrum = MeasuredSpectrum.open(filepath)
         # Check if the system response removed is included.
         # If not, ask user to select a system response file.
-        if not spectrum.getSignal():
+        if not len(spectrum.getSignal()):
             result = QtGui.QMessageBox.question(self,
                                                 'Provide system response?',
                                                 'The selected file does not '
@@ -581,7 +625,14 @@ class MainWindow(QtGui.QMainWindow):
 
         # remove the previous measured spectrum
         if self.spectrum:
-            self.plot.removeSpectrum(self.spectrum)
+            result = QtGui.QMessageBox.question(self,
+                                                'Clear plot?',
+                                                'Do you want to clear the '
+                                                'plot?',
+                                                QtGui.QMessageBox.Yes,
+                                                QtGui.QMessageBox.No)
+            if result == QtGui.QMessageBox.Yes:
+                self.clearPlot()
 
         # plot the measured spectrum
         self.plot.addSpectrum(spectrum)
