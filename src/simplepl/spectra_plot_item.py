@@ -52,6 +52,11 @@ class SpectraPlotItem(PlotItem):
         super(SpectraPlotItem, self).__init__(parent=None, name=None,
             labels=None, title=None, viewBox=None, axisItems=None,
             enableMenu=True, **kwargs)
+
+        self._signalEnabled = True
+        self._rawSignalEnabled = True
+        self._phaseEnabled = True
+
         self._spectra = []
         self._signalLines = []
         self._rawSignalLines = []
@@ -78,6 +83,41 @@ class SpectraPlotItem(PlotItem):
         # Add the spectra
         for spectrum in spectra:
             self.addSpectrum(spectrum)
+
+    def setSignalEnabled(self, b):
+        print 'setSignalEnabled'
+        self._signalEnabled = bool(b)
+        self.updateEnabled()
+
+    def setRawSignalEnabled(self, b):
+        print 'setRawSignalEnabled'
+        self._rawSignalEnabled = bool(b)
+        self.updateEnabled()
+
+    def setPhaseEnabled(self, b):
+        print 'setPhaseEnabled'
+        self._phaseEnabled = bool(b)
+        self.updateEnabled()
+
+    def updateEnabled(self):
+        if self._signalEnabled:
+            for line in self._signalLines:
+                line.show()
+        else:
+            for line in self._signalLines:
+                line.hide()
+        if self._rawSignalEnabled:
+            for line in self._rawSignalLines:
+                line.show()
+        else:
+            for line in self._rawSignalLines:
+                line.hide()
+        if self._phaseEnabled:
+            for line in self._phaseLines:
+                line.show()
+        else:
+            for line in self._phaseLines:
+                line.hide()
 
     def updateLogMode(self):
         x = self.ctrl.logXCheck.isChecked()
@@ -183,6 +223,7 @@ class SpectraPlotItem(PlotItem):
                                  pen=pg.mkPen(phaseColor,
                                               style=QtCore.Qt.DotLine))
         self._getPhaseViewBox().addItem(phaseLine)
+        self.updateEnabled()
 
         self._signalLines.append(signalLine)
         self._rawSignalLines.append(rawSignalLine)
@@ -200,3 +241,4 @@ class SpectraPlotItem(PlotItem):
         for spectrum, line in zip(self._spectra, self._phaseLines):
             line.setData(x=self.getX(spectrum),
                          y=spectrum.getPhase())
+        self.updateEnabled()
