@@ -85,17 +85,14 @@ class SpectraPlotItem(PlotItem):
             self.addSpectrum(spectrum)
 
     def setSignalEnabled(self, b):
-        print 'setSignalEnabled'
         self._signalEnabled = bool(b)
         self.updateEnabled()
 
     def setRawSignalEnabled(self, b):
-        print 'setRawSignalEnabled'
         self._rawSignalEnabled = bool(b)
         self.updateEnabled()
 
     def setPhaseEnabled(self, b):
-        print 'setPhaseEnabled'
         self._phaseEnabled = bool(b)
         self.updateEnabled()
 

@@ -612,7 +612,7 @@ class MainWindow(QtGui.QMainWindow):
             return
         dirpath, filename = os.path.split(filepath)
         self._settings.setValue('last_directory', dirpath)
-        self.setWindowTitle(u'SimplePL - {}'.format(filename))
+#         self.setWindowTitle(u'SimplePL - {}'.format(filename))
         spectrum = MeasuredSpectrum.open(filepath)
         # Check if the system response removed is included.
         # If not, ask user to select a system response file.
