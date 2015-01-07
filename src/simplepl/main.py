@@ -57,6 +57,10 @@ def run(debug, simulate):
     settings.sync()
     if debug:
         logging.basicConfig(level=logging.DEBUG)
+        log = logging.getLogger(__name__)
+        log.debug('Logging enabled.')
+        if simulate:
+            log.debug('Simulating instruments.')
     install_excepthook()
 
     runner = AppRunner(debug, simulate)
