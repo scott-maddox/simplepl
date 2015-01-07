@@ -78,19 +78,7 @@ def makeSplashLogo():
 
     # draw logo on pixmap
     logo = QtGui.QPixmap(QtGui.QImage('resources/icon_256.png'))
-#     p.drawPixmap(xw / 2 - logo.width() / 2, border, logo)
     p.drawPixmap(xw / 2 - logo.width() / 2, yw / 2 - logo.height() / 2, logo)
-
-#     # add copyright text
-#     doc = qt4.QTextDocument()
-#     doc.setPageSize( qt4.QSizeF(xw, yw - 3*border - logo.height()) )
-#     f = qt4.qApp.font()
-#     f.setPointSize(14)
-#     doc.setDefaultFont(f)
-#     doc.setDefaultTextOption( qt4.QTextOption(qt4.Qt.AlignCenter) )
-#     doc.setHtml(splashcopyr % utils.version())
-#     p.translate(0, 2*border + logo.height())
-#     doc.drawContents(p)
     p.end()
     return pix
 
@@ -98,8 +86,8 @@ def makeSplashLogo():
 class AppRunner(QtCore.QObject):
     '''
     QObject to run application. This provides an event loop, so we can
-    have a splash screen while importing, etc.'''
-
+    have a splash screen while importing, etc.
+    '''
     def __init__(self, debug, simulate):
         super(AppRunner, self).__init__()
 
