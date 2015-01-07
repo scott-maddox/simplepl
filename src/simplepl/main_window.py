@@ -42,7 +42,7 @@ from .dialogs.gratings_and_filters_config_dialog import (
 from .dialogs.set_wavelength_dialog import SetWavelengthDialog
 from .dialogs.config_instruments_dialog import ConfigInstrumentsDialog
 from .dialogs.generate_veusz_file_dialog import GenerateVeuszFileDialog
-from .version import __version__
+from .dialogs.about_dialog import AboutDialog
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -673,29 +673,7 @@ class MainWindow(QtGui.QMainWindow):
         self.saveFile()
 
     def about(self):
-        title = 'About SimplePL'
-        text = ('SimplePL\n'
-                'Version {}\n'
-                '\n'
-                'Copyright (c) 2013-2014, Scott J Maddox\n'
-                '\n'
-                'SimplePL is free software: you can redistribute it'
-                ' and/or modify it under the terms of the GNU Affero General'
-                ' Public License as published by the Free Software Foundation,'
-                ' either version 3 of the License, or (at your option) any'
-                ' later version.\n'
-                '\n'
-                'SimplePL is distributed in the hope that it will be'
-                ' useful, but WITHOUT ANY WARRANTY; without even the implied'
-                ' warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR'
-                ' PURPOSE.  See the GNU Affero General Public License for'
-                ' more details.\n'
-                '\n'
-                'You should have received a copy of the GNU Affero General'
-                ' Public License along with SimplePL.  If not, see'
-                ' <http://www.gnu.org/licenses/>.'
-                ''.format(__version__))
-        QtGui.QMessageBox.about(self, title, text)
+        AboutDialog().exec_()
 
     def moveCenter(self):
         qr = self.frameGeometry()
